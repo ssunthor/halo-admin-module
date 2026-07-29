@@ -1,0 +1,72 @@
+module_info:
+  name: "Halo Admin Module"
+  version: "0.1.0"
+  acronym: "HAM"
+  category: "Admin"
+  description: "Centralized platform for managing the HALO ecosystem."
+
+system_services:
+  grpc:
+    service_name: "ham-grpc.service"
+    service_type: "grpc"
+    host: "0.0.0.0"
+    port: 50125
+    max_workers: 10
+  api:
+    service_name: "ham-api.service"
+    service_type: "api"
+    host: "0.0.0.0"
+    port: 7899
+
+database:
+  write_dsn: "postgresql://ham_admin_prod_user:EUfOKcHxXpSCdQl10W5IwWGw@slo-aif-hadb.slo.gt-t.net:5432/ham_admin_prod_db"
+  read_dsn: "postgresql://ham_admin_prod_user:EUfOKcHxXpSCdQl10W5IwWGw@slo-aif-ha.slo.gt-t.net:5433/ham_admin_prod_db"
+
+redis:
+  url: "redis://:xJRa4q3Yhs77@localhost:6379/9"
+
+auth:
+  auth_url: "https://keycloak-aif.gt-t.net/realms/aif-llm/protocol/openid-connect/token"
+  client_id: "gia-test"
+  client_secret: "sYnfJ36CZp1GxCm3lxt3g6MSdY3pw0Ih"
+
+connectors:
+  hau:
+    host: "localhost"
+    port: 50121
+    timeout_seconds: 30
+
+paths:
+  shared_assets_path: "/ai/assets"
+  generated_stubs_path: "/ai/assets/protos/halo_admin_module/generated"
+  hau_stubs_path: "/ai/assets/protos/halo_admin_utility/generated"
+  sera_stubs_path: "/ai/assets/protos/sera_standard/generated"
+  docs_base_path: "/ai/assets/guides"
+
+registered_modules:
+  - id: "HAM"
+    name: "Halo Admin Module"
+    docs_file: "/ai/halo_admin_module/docs/ham_design.md"
+    changelog_file: "/ai/halo_admin_module/docs/CHANGELOG.yaml"
+  - id: "HAU"
+    name: "Halo Admin Utility"
+    docs_file: "/ai/utilities/halo_admin_utility/docs/hau_design.md"
+    changelog_file: "/ai/utilities/halo_admin_utility/docs/CHANGELOG.yaml"
+
+llm_engines:
+  primary:
+    provider: "vllm"
+    base_url: "https://aif-llm-gemma4-31b.aif.gt-t.net"
+    api_endpoint: "/v1/chat/completions"
+    model: "google/gemma-4-31B-it"
+    timeout_seconds: 180
+    ssl_verify: false
+    max_tokens: 32768
+    enable_thinking: "enable"
+
+logging:
+  level: "INFO" 
+  directory: "/ai/assets/logs/ham_admin"
+  enable_file_logging: true
+  app_log_filename: "ham_app.log"
+  error_log_filename: "ham_err.log"

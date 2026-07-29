@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# HALO ADMIN MODULE (HAM) - CHANGELOG
+#
+# NOTE FOR CONTRIBUTORS:
+# Please add the tag `[NEEDS_DOCS]` to the end of any item
+# that introduces a significant change to logic, architecture, or
+# core functionality. This serves as a reminder to update the
+# main `ham_design.md` document to reflect the change.
+#
+# STANDARD CATEGORIES:
+# - "🚀 Architecture & Infrastructure"
+# - "✨ New Features & Enhancements"
+# - "🎨 UI / UX Improvements"
+# - "🐛 Bug Fixes & Resilience"
+# - "🔒 Security & Auth"
+# - "🧹 Refactoring & Chores"
+# ---------------------------------------------------------------------------
+- version: 0.1.1
+  date: "2026-07-29"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Engineered the HALO Inventory Dashboard, introducing a centralized UI to monitor computational topology across the ecosystem."
+        - "Built a dynamic, location-based grouping mechanism to seamlessly organize distributed clusters (e.g., `SLO`, `NYC`) under unified Datacenter accordions."
+        - "Integrated native `INTERNAL` / `EXTERNAL` network boundaries and active environment URLs directly into the Namespace headers."
+        - "Designed compact, expandable Resource Tables for high-density telemetry streaming (Deployments, Pods, Services) to minimize vertical scrolling."
+        - "Implemented the GitOps Command Center UI natively in HAM to visualize repository intelligence, active branches, and container releases."
+        - "Built a comprehensive Project Details Dialog within the GitOps UI, integrating live `CHANGELOG`, `DOCUMENTATION`, and `GITOPS / ROLLBACK` state tabs."
+        - "Engineered a robust React Markdown renderer with a custom `MermaidBlock` to dynamically render rich architecture documents and SVG flowcharts natively in the browser."
+        - "Implemented a custom Markdown metadata parser (`**Field:** Value`) to dynamically extract document attributes (e.g., Version, Doc Type, Status) and render them as stylized UI chips."
+        - "Engineered the centralized Releases Page, seamlessly aggregating changelog events across all HALO projects into a single chronological velocity dashboard."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Created the `/api/inventory` REST API endpoint to natively proxy and handle HALO ecosystem topology payloads from the HAU gRPC backend."
+        - "Added the `/api/gitops/inventory` REST API endpoint with Redis caching (30s) to securely proxy GitOps data from HAU without risking GitLab rate limits."
+        - "Engineered `/api/gitops/changelog/{project}` and `/api/gitops/documentation/{project}` REST API endpoints to securely proxy and cache documentation payloads from the HAU gRPC backend."
+        - "Implemented a 1-hour heartbeat loop (`gitops_daemon`) for decoupled background sweeps, caching all project changelogs into Redis (`ham:gitops:releases:all`)."
+        - "Added the `/api/gitops/releases` REST API endpoint to serve aggregated changelog JSON arrays directly from Redis for zero-latency UI rendering."
+        - "Engineered incremental Redis cache updates within the `RedisHandler` to actively push `update_changelog_in_cache` operations whenever individual projects are fetched."
+
+- version: 0.1.0
+  date: "2026-07-29"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Initial scaffolding of the HALO Admin Module (HAM)."
+        - "Cloned the basic structure from the Sera Admin Module (SAM), stripped out all SERA-specific telemetry plugins, and configured for HALO operations."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Established the primary gRPC connection pipeline to the HALO Admin Utility (HAU)."
