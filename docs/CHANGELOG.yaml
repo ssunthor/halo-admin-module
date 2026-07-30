@@ -30,6 +30,10 @@
         - "Engineered a robust React Markdown renderer with a custom `MermaidBlock` to dynamically render rich architecture documents and SVG flowcharts natively in the browser."
         - "Implemented a custom Markdown metadata parser (`**Field:** Value`) to dynamically extract document attributes (e.g., Version, Doc Type, Status) and render them as stylized UI chips."
         - "Engineered the centralized Releases Page, seamlessly aggregating changelog events across all HALO projects into a single chronological velocity dashboard."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Engineered a dense CSS Grid layout (`grid-auto-flow: dense`) for the GitOps Dashboard to dynamically pack and compress project cards optimally across the horizontal viewport."
+        - "Designed GitOps active deployment tooltips as an elegant, scalable 4-column matrix overlay perfectly aligned with the ecosystem's SAM design aesthetic."
     - category: "🚀 Architecture & Infrastructure"
       items:
         - "Created the `/api/inventory` REST API endpoint to natively proxy and handle HALO ecosystem topology payloads from the HAU gRPC backend."

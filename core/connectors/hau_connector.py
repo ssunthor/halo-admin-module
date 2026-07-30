@@ -64,11 +64,11 @@ class HAUConnector:
             logger.error(f"Error fetching inventory: {e}")
             raise
 
-    def get_git_inventory(self, group_path: str = "ai/halo") -> Dict[str, Any]:
+    def get_git_inventory(self, project_name: str = "") -> dict:
         if not self.stub:
             raise Exception("HAU Connector is not connected.")
             
-        req = self.hau_pb2.GitInventoryRequest(group_path=group_path)
+        req = self.hau_pb2.GitInventoryRequest(project_name=project_name)
         try:
             # Set a slightly longer timeout (e.g., 60 seconds) because fetching git inventory can take a few seconds
             resp = self.stub.GitInventory(req, metadata=self.metadata, timeout=60)

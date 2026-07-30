@@ -110,7 +110,7 @@ export default function InventoryPage() {
                                         {isInternal !== null && (
                                             <Chip 
                                                 icon={isInternal ? <LockIcon fontSize="small"/> : <PublicIcon fontSize="small"/>}
-                                                label={isInternal ? 'INTERNAL' : 'EXTERNAL'} 
+                                                label={isInternal ? 'INTERNAL' : 'CUSTOMER'} 
                                                 size="small" 
                                                 color={isInternal ? 'warning' : 'info'} 
                                             />

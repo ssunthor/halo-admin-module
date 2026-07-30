@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    Typography, Box, IconButton, Tabs, Tab, CircularProgress, Stack, Paper, Chip
+    Typography, Box, IconButton, Tabs, Tab, CircularProgress, Stack, Paper, Chip, Tooltip, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import StorageIcon from '@mui/icons-material/Storage';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -52,7 +53,7 @@ function TabPanel(props) {
     );
 }
 
-export default function ProjectDetailsDialog({ open, onClose, project, unifiedList }) {
+export default function ProjectDetailsDialog({ open, onClose, project }) {
     const [tabIndex, setTabIndex] = useState(2); // Default to GitOps tab
 
     const projectName = project?.name;
@@ -87,6 +88,89 @@ export default function ProjectDetailsDialog({ open, onClose, project, unifiedLi
     if (changelogData && changelogData.length > 0) {
         latestChangelogVersion = changelogData[0].version;
     }
+
+    const tooltipProps = {
+        arrow: true,
+        placement: 'top',
+        PopperProps: { sx: { '& .MuiTooltip-tooltip': { maxWidth: 'none', bgcolor: '#0a0e1a', border: '1px solid #333', boxShadow: 6, borderRadius: 2 } } }
+    };
+
+    const buildNamespacesTooltip = (namespaces) => {
+        if (!namespaces || namespaces.length === 0) return null;
+        
+        const chunked = [];
+        for (let i = 0; i < namespaces.length; i += 4) {
+            chunked.push(namespaces.slice(i, i + 4));
+        }
+
+        return (
+            <Box sx={{ p: 1.5 }}>
+                <Typography variant="subtitle2" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, pb: 1, borderBottom: '1px solid rgba(255,255,255,0.1)', fontWeight: 'bold' }}>
+                    <InfoOutlinedIcon fontSize="small" /> Active Namespaces
+                </Typography>
+                <Table size="small" sx={{ '& td': { color: '#a9b3c1', py: 0.5, px: 2, whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.05)' } }}>
+                    <TableBody>
+                        {chunked.map((row, rIdx) => (
+                            <TableRow key={rIdx} sx={{ '&:last-child td': { borderBottom: 'none' } }}>
+                                {row.map((ns, cIdx) => (
+                                    <TableCell key={cIdx} sx={{ fontFamily: 'monospace', borderRight: cIdx < row.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                                        {ns}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Box>
+        );
+    };
+
+    const renderContainerGroup = (title, items, borderColor) => {
+        if (!items || items.length === 0) return null;
+        
+        return (
+            <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>{title}</Typography>
+                <Stack spacing={1}>
+                    {items.map((t, idx) => {
+                        const tagName = t.tag || t.container_tag;
+                        const activeDeployments = t.active_deployments || 0;
+                        const inUse = activeDeployments > 0;
+                        const author = t.author || t.branch_author || 'Unknown';
+                        const created = t.created_at || t.container_created;
+                        
+                        return (
+                            <Paper key={idx} sx={{ p: 1.5, borderLeft: 4, borderColor }} variant="outlined">
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                            <StorageIcon fontSize="inherit" color="action" />
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
+                                                {tagName}
+                                            </Typography>
+                                            {inUse && (
+                                                <Tooltip title={t.active_namespaces?.length > 0 ? buildNamespacesTooltip(t.active_namespaces) : ''} {...tooltipProps}>
+                                                    <Chip size="small" label={`Active Deployments: ${activeDeployments}`} color="success" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'rgba(46, 125, 50, 0.1)' }} variant="outlined" />
+                                                </Tooltip>
+                                            )}
+                                        </Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', gap: 2 }}>
+                                            {t.branch && <span><strong>Branch:</strong> {t.branch}</span>}
+                                            {t.source_feature && t.source_feature !== 'Unknown' && <span><strong>Feature:</strong> {t.source_feature}</span>}
+                                            <span><strong>Author:</strong> {author}</span>
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {created ? new Date(created).toLocaleString() : 'unknown'}
+                                    </Typography>
+                                </Box>
+                            </Paper>
+                        );
+                    })}
+                </Stack>
+            </Box>
+        );
+    };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { height: '85vh' } }}>
@@ -254,84 +338,33 @@ export default function ProjectDetailsDialog({ open, onClose, project, unifiedLi
                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
                         Branches & Container Tags
                     </Typography>
-                    <Stack spacing={2}>
-                        {unifiedList.length > 0 ? (
-                            unifiedList.map((item, idx) => {
-                                if (item.type === 'branch') {
-                                    return (
-                                        <Paper key={`branch-${item.name}-${idx}`} sx={{ p: 1.5, borderLeft: 4, borderColor: 'primary.main' }} variant="outlined">
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: item.tags.length > 0 ? 1.5 : 0 }}>
+                    
+                    <Stack spacing={3}>
+                        {renderContainerGroup("🚀 Releases", project.inventory?.releases, 'success.main')}
+                        {renderContainerGroup("🚧 Pre-releases (-dev)", project.inventory?.pre_releases, 'warning.main')}
+                        {renderContainerGroup("✨ Active Features", project.inventory?.features, 'info.main')}
+                        {renderContainerGroup("👻 Standalone Containers (Branch Deleted)", project.inventory?.standalone_features?.filter(c => c.active_deployments > 0), 'error.main')}
+                        
+                        {project.inventory?.active_branches_without_containers?.length > 0 && (
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>🌱 Active Branches (No Container)</Typography>
+                                <Stack spacing={1}>
+                                    {project.inventory.active_branches_without_containers.map((b, idx) => (
+                                        <Paper key={idx} sx={{ p: 1.5, borderLeft: 4, borderColor: 'primary.main' }} variant="outlined">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <AccountTreeIcon color="primary" fontSize="small" />
-                                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{item.name}</Typography>
-                                                
-                                                {item.tags.some(t => t.inUse) ? (
-                                                    <Chip size="small" label="In Use" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                                ) : (
-                                                    <Chip size="small" label="Active Branch" color="primary" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                                )}
-                                                
-                                                {item.tags.length === 0 && (
-                                                    <Chip size="small" label="No Container" color="default" variant="outlined" sx={{ height: 20, fontSize: '0.7rem', ml: 1 }} />
-                                                )}
-                                            </Box>
-                                            
-                                            {item.tags.length > 0 && (
-                                                <Stack spacing={1} sx={{ pl: 3 }}>
-                                                    {item.tags.map((t, tidx) => (
-                                                        <Box key={tidx} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <StorageIcon fontSize="inherit" color="action" />
-                                                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{t.name}</Typography>
-                                                                {t.inUse && <Chip size="small" label="Running" color="success" sx={{ height: 18, fontSize: '0.65rem' }} />}
-                                                                {t.registry !== 'root registry' && (
-                                                                    <Typography variant="caption" color="text.secondary">({t.registry})</Typography>
-                                                                )}
-                                                            </Box>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                {t.created_at ? new Date(t.created_at).toLocaleString() : 'unknown'} 
-                                                                {t.author && t.author !== 'Unknown' && ` • ${t.author}`}
-                                                            </Typography>
-                                                        </Box>
-                                                    ))}
-                                                </Stack>
-                                            )}
-                                        </Paper>
-                                    );
-                                } else {
-                                    const t = item.tag;
-                                    const isRelease = item.type === 'release';
-                                    return (
-                                        <Paper key={`tag-${t.name}-${idx}`} sx={{ p: 1.5, borderLeft: 4, borderColor: isRelease ? 'success.main' : 'warning.main' }} variant="outlined">
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <Box>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                                        <StorageIcon fontSize="inherit" color="action" />
-                                                        <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
-                                                            {t.name}
-                                                        </Typography>
-                                                        {t.inUse && <Chip size="small" label="In Use" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />}
-                                                        {isRelease && (
-                                                            <Chip size="small" label="Release" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                                        )}
-                                                        {item.isDeleted && !isRelease && (
-                                                            <Chip size="small" label="Branch Deleted" color="warning" icon={<WarningAmberIcon fontSize="small"/>} sx={{ height: 20, fontSize: '0.7rem' }} />
-                                                        )}
-                                                    </Box>
-                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', gap: 2 }}>
-                                                        <span><strong>Source:</strong> {t.source_branch !== 'N/A' ? t.source_branch : 'Direct Push'}</span>
-                                                        <span><strong>Author:</strong> {t.author || 'Unknown'}</span>
-                                                        {t.registry !== 'root registry' && <span><strong>Registry:</strong> {t.registry}</span>}
-                                                    </Typography>
-                                                </Box>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {t.created_at ? new Date(t.created_at).toLocaleString() : 'unknown'}
+                                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{b.branch}</Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                                                    Author: {b.author || 'Unknown'}
                                                 </Typography>
                                             </Box>
                                         </Paper>
-                                    );
-                                }
-                            })
-                        ) : (
+                                    ))}
+                                </Stack>
+                            </Box>
+                        )}
+                        
+                        {!project.inventory?.releases?.length && !project.inventory?.pre_releases?.length && !project.inventory?.features?.length && !(project.inventory?.standalone_features?.filter(c => c.active_deployments > 0)?.length) && !project.inventory?.active_branches_without_containers?.length && (
                             <Typography variant="body2" color="text.secondary">No branches or tags found.</Typography>
                         )}
                     </Stack>

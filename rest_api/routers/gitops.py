@@ -14,10 +14,10 @@ def get_redis_handler(request: Request):
         raise HTTPException(status_code=503, detail="Redis Handler not initialized")
     return request.app.state.redis_handler
 
-def background_fetch_and_cache(connector, redis, group_path: str, cache_key: str):
+def background_fetch_and_cache(connector, redis, project_name: str, cache_key: str):
     try:
-        logger.debug(f"Starting background fetch for GitOps inventory: {group_path}")
-        live_data = connector.get_git_inventory(group_path=group_path)
+        logger.debug(f"Starting background fetch for GitOps inventory: {project_name}")
+        live_data = connector.get_git_inventory(project_name=project_name)
         # Cache for 5 minutes, UI will keep triggering background refreshes every 1 min
         redis.set_json(cache_key, live_data, ex=300)
         logger.debug(f"Successfully refreshed GitOps inventory cache: {cache_key}")
@@ -25,22 +25,22 @@ def background_fetch_and_cache(connector, redis, group_path: str, cache_key: str
         logger.error(f"Background fetch for gitops failed: {e}")
 
 @router.get("/inventory")
-def get_gitops_inventory(request: Request, background_tasks: BackgroundTasks, group_path: str = "ai/halo"):
+def get_gitops_inventory(request: Request, background_tasks: BackgroundTasks, project_name: str = ""):
     connector = get_hau_connector(request)
     redis = get_redis_handler(request)
     
-    cache_key = f"ham:gitops:inventory:{group_path}"
+    cache_key = f"ham:gitops:inventory:{project_name}"
     
     # 1. Immediate Cache Return
     cached_data = redis.get_json(cache_key)
     if cached_data:
         # Spawn background task to refresh the data silently for subsequent requests
-        background_tasks.add_task(background_fetch_and_cache, connector, redis, group_path, cache_key)
+        background_tasks.add_task(background_fetch_and_cache, connector, redis, project_name, cache_key)
         return {"success": True, "data": cached_data}
         
     # 2. Cache Miss (First load after redis restart) - synchronous wait
     try:
-        live_data = connector.get_git_inventory(group_path=group_path)
+        live_data = connector.get_git_inventory(project_name=project_name)
         redis.set_json(cache_key, live_data, ex=300)
         return {"success": True, "data": live_data}
     except Exception as e:
@@ -58,7 +58,7 @@ def get_all_gitops_releases(request: Request, background_tasks: BackgroundTasks)
         
     connector = get_hau_connector(request)
     try:
-        inventory = connector.get_git_inventory(group_path="ai/halo")
+        inventory = connector.get_git_inventory(project_name="")
         projects = inventory.get("projects", [])
         
         all_releases = []
@@ -122,4 +122,3 @@ def get_project_documentation(request: Request, project_name: str):
     except Exception as e:
         logger.error(f"Failed to fetch docs for {project_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
