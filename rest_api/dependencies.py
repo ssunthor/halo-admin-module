@@ -14,7 +14,7 @@ def get_current_user(
 ) -> Dict[str, Any]:
     groups = x_forwarded_groups.split(',') if x_forwarded_groups else []
     username = x_forwarded_user or "unknown_user"
-    is_admin = "SERA-Role-Admins" in groups or "SERA-App-SAM-Admins" in groups
+    is_admin = "GIA-Role-Admins" in groups or "GIA-App-HAM-Admins" in groups
     
     role = "user"
     if is_admin:
@@ -26,8 +26,6 @@ def get_current_user(
         "groups": groups,
         "role": role,
         "permissions": {
-            "can_delete_events": is_admin,
-            "can_run_benchmarks": is_admin,
-            "can_push_amu": is_admin
+            "can_promote_release": is_admin
         }
     }

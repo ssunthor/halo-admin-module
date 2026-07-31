@@ -64,6 +64,18 @@ class HAUConnector:
             logger.error(f"Error fetching inventory: {e}")
             raise
 
+    def sync_git_inventory(self, project_name: str = "") -> dict:
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.GitInventorySyncRequest(project_name=project_name)
+        try:
+            resp = self.stub.GitInventorySync(req, metadata=self.metadata, timeout=120)
+            return {"success": resp.success, "message": resp.message}
+        except Exception as e:
+            logger.error(f"Error syncing git inventory: {e}")
+            raise
+
     def get_git_inventory(self, project_name: str = "") -> dict:
         if not self.stub:
             raise Exception("HAU Connector is not connected.")
@@ -107,3 +119,49 @@ class HAUConnector:
         except Exception as e:
             logger.error(f"Error fetching documentation for {project_name}: {e}")
             raise
+
+    def get_git_audit(self, project_name: str = "", audit_id: str = "") -> list:
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.GitAuditRequest(project_name=project_name, id=audit_id)
+        try:
+            resp = self.stub.GitAudit(req, metadata=self.metadata, timeout=30)
+            if not resp.success:
+                raise Exception(f"Failed to fetch git audit logs: {resp.message}")
+            import json
+            return json.loads(resp.result_json)
+        except Exception as e:
+            logger.error(f"Error fetching git audit logs: {e}")
+            raise
+
+    def trigger_git_release(self, project_name: str, source_branch: str, target_branch: str, author: str, skip_changelog: bool = False, keep_branch: bool = True, debug: bool = True):
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.GitReleaseRequest(
+            project_name=project_name,
+            source_branch=source_branch,
+            target_branch=target_branch,
+            skip_changelog_generation=skip_changelog,
+            keep_branch=keep_branch,
+            debug=debug,
+            author=author
+        )
+        # Returns a generator for the gRPC stream
+        return self.stub.GitRelease(req, metadata=self.metadata)
+
+    def trigger_git_retry(self, project_name: str, pipeline_id: int, merge_id: int, author: str, skip_warnings: bool = False, debug: bool = True):
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.GitRetryRequest(
+            project_name=project_name,
+            pipeline_id=pipeline_id,
+            merge_id=merge_id,
+            skip_warnings=skip_warnings,
+            debug=debug,
+            author=author
+        )
+        # Returns a generator for the gRPC stream
+        return self.stub.GitRetry(req, metadata=self.metadata)

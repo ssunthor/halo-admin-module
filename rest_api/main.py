@@ -28,14 +28,16 @@ def sync_gitops_task(state):
     try:
         connector = state.hau_connector
         redis = state.redis_handler
-
-        inventory = connector.get_git_inventory(group_path="ai/halo")
+        inventory = connector.get_git_inventory()
         projects = inventory.get("projects", [])
         
         all_releases = []
         for proj in projects:
             proj_name = proj.get("name")
             if not proj_name: continue
+            
+            if proj.get("type") == "INFORMATIONAL":
+                continue
             
             try:
                 raw_yaml = connector.get_changelog(project_name=proj_name)

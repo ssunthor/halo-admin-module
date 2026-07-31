@@ -41,7 +41,7 @@ function ChangelogViewer({ versions, isPopup = false }) {
     const availableModules = useMemo(() => {
         const modules = new Map();
         versions.forEach(v => {
-            const id = v.id || 'SYS';
+            const id = v.id;
             if (!modules.has(id)) modules.set(id, v.service || 'System Updates');
         });
         return Array.from(modules.entries()).map(([id, service]) => ({ id, service }));
@@ -49,7 +49,7 @@ function ChangelogViewer({ versions, isPopup = false }) {
 
     const filteredVersions = useMemo(() => {
         if (isPopup || activeTab === 'ALL') return versions;
-        return versions.filter(v => (v.id || 'SYS') === activeTab);
+        return versions.filter(v => v.id === activeTab);
     }, [versions, activeTab, isPopup]);
 
     const categoryTotals = useMemo(() => {

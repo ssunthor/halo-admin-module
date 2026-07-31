@@ -1,7 +1,12 @@
 import logging
+import time
+import uuid
+import json
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
+from rest_api.schemas import ReleaseRequest, RetryRequest
 
 logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/gitops", tags=["GitOps Inventory"])
 
 def get_hau_connector(request: Request):
@@ -17,6 +22,11 @@ def get_redis_handler(request: Request):
 def background_fetch_and_cache(connector, redis, project_name: str, cache_key: str):
     try:
         logger.debug(f"Starting background fetch for GitOps inventory: {project_name}")
+        if project_name:
+            try:
+                connector.sync_git_inventory(project_name=project_name)
+            except Exception as sync_e:
+                logger.error(f"Failed to sync git inventory before fetch: {sync_e}")
         live_data = connector.get_git_inventory(project_name=project_name)
         # Cache for 5 minutes, UI will keep triggering background refreshes every 1 min
         redis.set_json(cache_key, live_data, ex=300)
@@ -65,6 +75,9 @@ def get_all_gitops_releases(request: Request, background_tasks: BackgroundTasks)
         for proj in projects:
             proj_name = proj.get("name")
             if not proj_name: continue
+            
+            if proj.get("type") == "INFORMATIONAL":
+                continue
             
             try:
                 raw_yaml = connector.get_changelog(project_name=proj_name)
@@ -122,3 +135,137 @@ def get_project_documentation(request: Request, project_name: str):
     except Exception as e:
         logger.error(f"Failed to fetch docs for {project_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/audit")
+def get_project_audit_logs(request: Request, project_name: str):
+    connector = get_hau_connector(request)
+    redis = get_redis_handler(request)
+    cache_key = f"ham:gitops:audit:{project_name}"
+    
+    cached_data = redis.get_json(cache_key)
+    if cached_data is not None:
+        return {"success": True, "data": cached_data}
+        
+    try:
+        # pass project_name to get all audit logs for the project
+        audit_logs = connector.get_git_audit(project_name=project_name)
+        redis.set_json(cache_key, audit_logs, ex=300)
+        return {"success": True, "data": audit_logs}
+    except Exception as e:
+        logger.error(f"Failed to fetch audit logs for {project_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def stream_logs_to_redis(redis, task_id: str, stream_generator):
+    cache_key = f"ham:gitops:task:{task_id}:logs"
+    status_key = f"ham:gitops:task:{task_id}:status"
+    
+    redis.client.set(status_key, "RUNNING", ex=3600)
+    
+    try:
+        for resp in stream_generator:
+            log_entry = {
+                "ts": time.time(),
+                "success": resp.success,
+                "message": resp.message,
+                "stage": resp.stage if hasattr(resp, 'stage') else ""
+            }
+            # Append log to redis list
+            redis.client.rpush(cache_key, json.dumps(log_entry))
+            redis.client.expire(cache_key, 3600)
+            
+            if not resp.success:
+                redis.client.set(status_key, "FAILED", ex=3600)
+                return
+                
+        redis.client.set(status_key, "COMPLETED", ex=3600)
+    except Exception as e:
+        logger.error(f"Stream error: {e}")
+        redis.client.set(status_key, "FAILED", ex=3600)
+        redis.client.rpush(cache_key, json.dumps({
+            "ts": time.time(),
+            "success": False,
+            "message": f"Stream failed: {e}",
+            "stage": "STREAM_ERROR"
+        }))
+
+@router.post("/release")
+def trigger_release(request: Request, body: ReleaseRequest, background_tasks: BackgroundTasks):
+    connector = get_hau_connector(request)
+    redis = get_redis_handler(request)
+    task_id = str(uuid.uuid4())
+    
+    try:
+        stream = connector.trigger_git_release(
+            project_name=body.project_name,
+            source_branch=body.source_branch,
+            target_branch=body.target_branch,
+            author=body.author
+        )
+        
+        # Save task mapping to project
+        task_list_key = f"ham:gitops:tasks:{body.project_name}"
+        redis.client.lpush(task_list_key, task_id)
+        redis.client.ltrim(task_list_key, 0, 9) # keep last 10
+        
+        background_tasks.add_task(stream_logs_to_redis, redis, task_id, stream)
+        return {"success": True, "task_id": task_id}
+    except Exception as e:
+        logger.error(f"Failed to trigger release: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/retry")
+def trigger_retry(request: Request, body: RetryRequest, background_tasks: BackgroundTasks):
+    connector = get_hau_connector(request)
+    redis = get_redis_handler(request)
+    task_id = str(uuid.uuid4())
+    
+    try:
+        stream = connector.trigger_git_retry(
+            project_name=body.project_name,
+            pipeline_id=body.pipeline_id,
+            merge_id=body.merge_id,
+            author=body.author
+        )
+        
+        task_list_key = f"ham:gitops:tasks:{body.project_name}"
+        redis.client.lpush(task_list_key, task_id)
+        redis.client.ltrim(task_list_key, 0, 9)
+        
+        background_tasks.add_task(stream_logs_to_redis, redis, task_id, stream)
+        return {"success": True, "task_id": task_id}
+    except Exception as e:
+        logger.error(f"Failed to trigger retry: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/tasks")
+def get_project_tasks(request: Request, project_name: str):
+    redis = get_redis_handler(request)
+    task_list_key = f"ham:gitops:tasks:{project_name}"
+    
+    task_ids = redis.client.lrange(task_list_key, 0, -1)
+    if not task_ids:
+        raise HTTPException(status_code=404, detail="No tasks found for project")
+        
+    tasks = []
+    for tid in task_ids:
+        tid_str = tid.decode('utf-8') if isinstance(tid, bytes) else tid
+        status = redis.client.get(f"ham:gitops:task:{tid_str}:status") or "UNKNOWN"
+        tasks.append({"task_id": tid_str, "status": status.decode('utf-8') if isinstance(status, bytes) else status})
+        
+    return {"success": True, "tasks": tasks}
+
+@router.get("/tasks/{task_id}/logs")
+def get_task_logs(request: Request, task_id: str):
+    redis = get_redis_handler(request)
+    
+    cache_key = f"ham:gitops:task:{task_id}:logs"
+    status_key = f"ham:gitops:task:{task_id}:status"
+    
+    logs_raw = redis.client.lrange(cache_key, 0, -1)
+    status_raw = redis.client.get(status_key)
+    
+    logs = [json.loads(l) for l in logs_raw] if logs_raw else []
+    status = status_raw.decode('utf-8') if isinstance(status_raw, bytes) else (status_raw or "UNKNOWN")
+    
+    return {"success": True, "task_id": task_id, "status": status, "logs": logs}

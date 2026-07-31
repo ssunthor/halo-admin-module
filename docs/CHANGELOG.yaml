@@ -15,6 +15,25 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.1.2
+  date: "2026-07-30"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Implemented dynamic Git release and retry pipeline functionality, featuring real-time stream monitoring for job traces, smart ghost-task handling, and auto-sorting of active releases within the GitOps UI."
+        - "Added dynamic 'Debug Logs' toggle for GitOps release pipelines, allowing engineers to filter or drill down into raw CI job traces directly from the UI."
+        - "Leveraged the `has_native_release` gRPC flag from HAU to seamlessly integrate dynamic GitLab release links directly into the GitOps dialog."
+        - "Built the new `AuditDetailsDialog` component to display rich Git release audit telemetry, including source/target branches, pipeline job tables, and footprints."
+        - "Integrated native Git Audit telemetry into the GitOps dialog, featuring a collapsible accordion interface to review multi-trail release events (e.g. retries), footprint sizes, and pipeline job details."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Engineered the `/api/gitops/audit/` REST endpoint to securely proxy Git audit logs from the HAU gRPC backend into the UI"
+        - "Expanded the `HAUConnector` with a native `get_git_audit` method mapped to the `GitAuditRequest` gRPC service."
+    - category: "🔒 Security & Auth"
+      items:
+        - "Locked down GitOps pipeline actions (release/retry/promote) to GIA Admin groups exclusively, enforcing strict RBAC via `can_promote_release` permissions."
+
 - version: 0.1.1
   date: "2026-07-29"
   author: "Martin Kecka"

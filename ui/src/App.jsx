@@ -123,13 +123,13 @@ function MainLayout() {
 
         const newReleases = [];
         const currentLatest = {};
-        const acronyms = [...new Set(changelogData.map(v => v.acronym || 'SYS'))];
+        const moduleIds = [...new Set(changelogData.map(v => v.id))];
         
-        acronyms.forEach(acronym => {
-            const moduleReleases = changelogData.filter(v => (v.acronym || 'SYS') === acronym);
+        moduleIds.forEach(moduleId => {
+            const moduleReleases = changelogData.filter(v => v.id === moduleId);
             if (moduleReleases.length > 0) {
-                currentLatest[acronym] = moduleReleases[0].version;
-                const seenVersion = lastSeen[acronym];
+                currentLatest[moduleId] = moduleReleases[0].version;
+                const seenVersion = lastSeen[moduleId];
                 if (!seenVersion) {
                     newReleases.push(moduleReleases[0]); 
                 } else {

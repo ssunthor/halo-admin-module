@@ -4,7 +4,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import ProjectDetailsDialog from './ProjectDetailsDialog.jsx';
+import ProjectDetailsDialog from '../dialogs/ProjectDetailsDialog';
 
 export default function ProjectCard({ project }) {
     const { name, path, fullPath, inventory = {} } = project;
