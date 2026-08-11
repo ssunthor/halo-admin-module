@@ -28,7 +28,7 @@ def clear_cache(ctx):
         redis_handler = RedisHandler(redis_url=redis_url)
         if redis_handler.client:
             redis_handler.client.flushdb()
-            redis_handler.client.set("__SERA_DB_OWNER__", "HAM - Aggregator Cache")
+            redis_handler.client.set("__SERA_DB_OWNER__", "HAM - Cache")
             click.secho("✓ Redis cache and daemon cooldowns flushed.", fg="green")
         else:
             click.secho("✗ Redis connection failed.", fg="red")

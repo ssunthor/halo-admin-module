@@ -17,3 +17,16 @@ def get_inventory(request: Request, tenant: str = ""):
         return {"success": True, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from rest_api.schemas import UpdateCustomizationRequest
+
+@router.post("/update-customization")
+def update_customization(request: Request, payload: UpdateCustomizationRequest):
+    connector = get_hau_connector(request)
+    try:
+        result = connector.update_tenant_customization(payload.dict())
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message"))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

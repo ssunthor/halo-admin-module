@@ -10,6 +10,7 @@ async def get_current_display_name(x_forwarded_display_name: Optional[str] = Hea
 def get_current_user(
     x_forwarded_user: Optional[str] = Header(None),
     x_forwarded_display_name: Optional[str] = Header(None),
+    x_forwarded_full_name: Optional[str] = Header(None),
     x_forwarded_groups: Optional[str] = Header(None)
 ) -> Dict[str, Any]:
     groups = x_forwarded_groups.split(',') if x_forwarded_groups else []
@@ -23,6 +24,7 @@ def get_current_user(
     return {
         "username": username,
         "display_name": x_forwarded_display_name or "Guest",
+        "full_name": x_forwarded_full_name or x_forwarded_display_name or "Guest",
         "groups": groups,
         "role": role,
         "permissions": {

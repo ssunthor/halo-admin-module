@@ -2,8 +2,9 @@ import logging
 import time
 import uuid
 import json
-from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
-from rest_api.schemas import ReleaseRequest, RetryRequest
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks, Depends
+from rest_api.schemas import ReleaseRequest, RetryRequest, DeleteRequest
+from rest_api.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -190,17 +191,19 @@ def stream_logs_to_redis(redis, task_id: str, stream_generator):
         }))
 
 @router.post("/release")
-def trigger_release(request: Request, body: ReleaseRequest, background_tasks: BackgroundTasks):
+def trigger_release(request: Request, body: ReleaseRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     connector = get_hau_connector(request)
     redis = get_redis_handler(request)
     task_id = str(uuid.uuid4())
+    
+    actor_name = current_user.get("full_name") or current_user.get("display_name") or current_user.get("username") or "Unknown"
     
     try:
         stream = connector.trigger_git_release(
             project_name=body.project_name,
             source_branch=body.source_branch,
             target_branch=body.target_branch,
-            author=body.author
+            author=actor_name
         )
         
         # Save task mapping to project
@@ -215,17 +218,19 @@ def trigger_release(request: Request, body: ReleaseRequest, background_tasks: Ba
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/retry")
-def trigger_retry(request: Request, body: RetryRequest, background_tasks: BackgroundTasks):
+def trigger_retry(request: Request, body: RetryRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     connector = get_hau_connector(request)
     redis = get_redis_handler(request)
     task_id = str(uuid.uuid4())
+    
+    actor_name = current_user.get("full_name") or current_user.get("display_name") or current_user.get("username") or "Unknown"
     
     try:
         stream = connector.trigger_git_retry(
             project_name=body.project_name,
             pipeline_id=body.pipeline_id,
             merge_id=body.merge_id,
-            author=body.author
+            author=actor_name
         )
         
         task_list_key = f"ham:gitops:tasks:{body.project_name}"
@@ -236,6 +241,30 @@ def trigger_retry(request: Request, body: RetryRequest, background_tasks: Backgr
         return {"success": True, "task_id": task_id}
     except Exception as e:
         logger.error(f"Failed to trigger retry: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/delete")
+def trigger_delete(request: Request, body: DeleteRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    connector = get_hau_connector(request)
+    
+    actor_name = current_user.get("full_name") or current_user.get("display_name") or current_user.get("username") or "Unknown"
+    
+    try:
+        response = connector.trigger_git_delete(
+            project_name=body.project_name,
+            branch_name=body.branch_name,
+            container_tag=body.container_tag,
+            author=actor_name
+        )
+        if response.get("success"):
+            redis = get_redis_handler(request)
+            redis.client.delete(f"ham:gitops:inventory:{body.project_name}")
+            redis.client.delete(f"ham:gitops:audit:{body.project_name}")
+            redis.client.delete(f"ham:gitops:inventory:") # Clear the global inventory cache too if needed, but project-specific is key
+            
+        return response
+    except Exception as e:
+        logger.error(f"Failed to trigger delete: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tasks")

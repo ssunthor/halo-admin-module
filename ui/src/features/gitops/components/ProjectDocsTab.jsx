@@ -3,25 +3,7 @@ import { Box, CircularProgress, Stack, Paper, Typography, Alert, Chip } from '@m
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import mermaid from 'mermaid';
-
-mermaid.initialize({ startOnLoad: false, theme: 'dark' });
-
-const MermaidBlock = ({ code }) => {
-    const ref = useRef(null);
-    useEffect(() => {
-        if (ref.current && code) {
-            const id = 'mermaid-' + Math.random().toString(36).substring(2, 10);
-            mermaid.render(id, code).then(({ svg }) => {
-                if (ref.current) ref.current.innerHTML = svg;
-            }).catch(e => {
-                console.error('Mermaid render error', e);
-                if (ref.current) ref.current.innerHTML = `<pre>${code}</pre>`;
-            });
-        }
-    }, [code]);
-    return <Box ref={ref} sx={{ display: 'flex', justifyContent: 'center', my: 2, bgcolor: 'background.default', p: 2, borderRadius: 1 }} />;
-};
+import Mermaid from '../../../components/common/Mermaid';
 
 export default function ProjectDocsTab({ docsData, isLoading, latestChangelogVersion }) {
     if (isLoading) {
@@ -116,7 +98,8 @@ export default function ProjectDocsTab({ docsData, isLoading, latestChangelogVer
                                         code({node, inline, className, children, ...props}) {
                                             const match = /language-(\w+)/.exec(className || '');
                                             if (!inline && match && match[1] === 'mermaid') {
-                                                return <MermaidBlock code={String(children).replace(/\n$/, '')} />;
+                                                const codeText = Array.isArray(children) ? children.join('') : String(children || '');
+                                                return <Mermaid code={codeText.replace(/\n$/, '')} />;
                                             }
                                             return <code className={className} {...props}>{children}</code>;
                                         }

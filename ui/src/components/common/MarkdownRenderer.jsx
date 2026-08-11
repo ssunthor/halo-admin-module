@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Box, Typography, Link, Divider, Paper } from '@mui/material';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import Mermaid from './Mermaid';
 
 function MarkdownRenderer({ markdownContent }) {
     const components = {
@@ -43,10 +44,16 @@ function MarkdownRenderer({ markdownContent }) {
         table: ({node, ...props}) => <Box sx={{ overflowX: 'auto', my: 2, '&::-webkit-scrollbar': { height: 8 }, '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 4, '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' } } }}><table style={{ borderCollapse: 'collapse', width: '100%' }} {...props} /></Box>,
         th: ({node, ...props}) => <th style={{ border: '1px solid rgba(169, 179, 193, 0.4)', padding: '10px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', textAlign: 'left', fontWeight: 'bold' }} {...props} />,
         td: ({node, ...props}) => <td style={{ border: '1px solid rgba(169, 179, 193, 0.4)', padding: '10px 16px', verticalAlign: 'top' }} {...props} />,
-        code: ({node, inline, ...props}) => 
-            inline 
-                ? <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }} {...props} />
-                : <Box component="pre" sx={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '8px', overflowX: 'auto', '&::-webkit-scrollbar': { height: 8, width: 8 }, '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 4, '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' } } }}><code {...props} /></Box>
+        code: ({node, inline, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            if (!inline && match && match[1] === 'mermaid') {
+                const codeText = Array.isArray(children) ? children.join('') : String(children || '');
+                return <Mermaid code={codeText.replace(/\n$/, '')} />;
+            }
+            return inline 
+                ? <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }} {...props}>{children}</code>
+                : <Box component="pre" sx={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '8px', overflowX: 'auto', '&::-webkit-scrollbar': { height: 8, width: 8 }, '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 4, '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' } } }}><code className={className} {...props}>{children}</code></Box>;
+        }
     };
 
     return (

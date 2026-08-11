@@ -4,6 +4,11 @@ export const docsService = {
         if (!response.ok) throw new Error('Failed to fetch documentation configuration');
         return response.json();
     },
+    fetchHaloDocsTree: async () => {
+        const response = await fetch('api/docs/halo-tree');
+        if (!response.ok) throw new Error('Failed to fetch halo documentation tree');
+        return response.json();
+    },
     fetchDocContent: async (docKey) => {
         const response = await fetch(`api/docs/content/${docKey}`);
         if (!response.ok) throw new Error(`Failed to fetch document: ${docKey}`);

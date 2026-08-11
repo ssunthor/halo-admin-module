@@ -9,7 +9,7 @@ class RedisHandler:
     def __init__(self, redis_url: str):
         try:
             self.client = redis.from_url(redis_url, decode_responses=True)
-            self.client.set("__SERA_DB_OWNER__", "SAM - Aggregator Cache")
+            self.client.set("__SERA_DB_OWNER__", "HAM - Cache")
             logger.info("Connected to Redis cache successfully.")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")

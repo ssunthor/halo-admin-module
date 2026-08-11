@@ -3,14 +3,45 @@ import yaml
 import logging
 import zipfile
 import io
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from utils.config_loader import load_config
+from core.connectors.hau_connector import HAUConnector
 
 logger = logging.getLogger(__name__)
 
 config = load_config()
 router = APIRouter(prefix="/api/docs", tags=["Documentation"])
+
+def get_redis_handler(request: Request):
+    if not hasattr(request.app.state, "redis_handler"):
+        raise HTTPException(status_code=503, detail="Redis Handler not initialized")
+    return request.app.state.redis_handler
+
+def background_fetch_halo_tree(connector: HAUConnector, redis, cache_key: str):
+    try:
+        live_data = connector.get_halo_documentation_tree()
+        redis.set_json(cache_key, live_data, ex=300)
+    except Exception as e:
+        logger.error(f"Background fetch for halo documentation tree failed: {e}")
+
+@router.get("/halo-tree")
+def get_halo_tree(request: Request, background_tasks: BackgroundTasks):
+    redis = get_redis_handler(request)
+    cache_key = "ham:docs:halo_tree"
+    
+    cached_data = redis.get_json(cache_key)
+    if cached_data:
+        return cached_data
+        
+    connector = HAUConnector(config)
+    try:
+        live_data = connector.get_halo_documentation_tree()
+        redis.set_json(cache_key, live_data, ex=300)
+        return live_data
+    except Exception as e:
+        logger.error(f"Failed to fetch halo documentation tree: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../"))

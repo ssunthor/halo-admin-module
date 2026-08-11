@@ -16,7 +16,7 @@ export default function LocationDetails({ locationName, details }) {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <StorageIcon color="secondary" />
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{locationName}</Typography>
-                    <Chip label={`ENV: ${details.environment?.toUpperCase()}`} size="small" variant="outlined" color="primary" />
+                    <Chip label={`TIER: ${details.tier?.toUpperCase()}`} size="small" variant="outlined" color="primary" />
                 </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 2, pt: 0 }}>

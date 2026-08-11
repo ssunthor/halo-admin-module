@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { 
     Box, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, 
-    Chip, Paper, Button
+    Chip, Paper, Button, IconButton
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PublicIcon from '@mui/icons-material/Public';
 import LockIcon from '@mui/icons-material/Lock';
 import LaunchIcon from '@mui/icons-material/Launch';
-import { useQuery } from '@tanstack/react-query';
+import EditIcon from '@mui/icons-material/Edit';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import LocationDetails from '../features/inventory/components/LocationDetails.jsx';
+import EditCustomizationDialog from '../features/inventory/dialogs/EditCustomizationDialog.jsx';
 
 const fetchInventory = async () => {
     const res = await fetch('/api/inventory');
@@ -23,6 +25,18 @@ export default function InventoryPage() {
         queryFn: fetchInventory,
         refetchInterval: 60000 // Refetch every 1 min
     });
+    
+    const queryClient = useQueryClient();
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editTenantSlug, setEditTenantSlug] = useState('');
+    const [editTenantData, setEditTenantData] = useState(null);
+
+    const handleEditClick = (ns, tenantData) => (e) => {
+        e.stopPropagation();
+        setEditTenantSlug(ns);
+        setEditTenantData(tenantData);
+        setEditDialogOpen(true);
+    };
 
     const [expandedNamespace, setExpandedNamespace] = useState(null);
 
@@ -48,18 +62,31 @@ export default function InventoryPage() {
 
     const namespaces = Object.keys(inventoryData || {}).sort();
 
+    const filteredNamespaces = namespaces.filter(ns => {
+        const clustersData = inventoryData[ns] || {};
+        let cat = 'CUSTOMER';
+        Object.keys(clustersData).forEach(clusterName => {
+            if (clustersData[clusterName].tenant_category) {
+                cat = clustersData[clusterName].tenant_category;
+            }
+        });
+        return cat !== 'INFRASTRUCTURE';
+    });
+
     return (
         <Box sx={{ p: 1, height: '100%', overflow: 'auto' }}>
-            {namespaces.length === 0 ? (
+            {filteredNamespaces.length === 0 ? (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                     <Typography color="text.secondary">No inventory data available.</Typography>
                 </Paper>
             ) : (
-                namespaces.map(ns => {
+                filteredNamespaces.map(ns => {
                     const clustersData = inventoryData[ns] || {};
                     const locations = {};
                     let namespaceUrl = '';
-                    let isInternal = null;
+                    let tenantCategory = 'CUSTOMER';
+                    let tenantTier = 'UNKNOWN';
+                    let fullTenantData = {};
 
                     Object.keys(clustersData).forEach(clusterName => {
                         const loc = clusterName.split('-')[0].toUpperCase();
@@ -67,7 +94,7 @@ export default function InventoryPage() {
                             locations[loc] = { 
                                 clusters: [], 
                                 resources: {}, 
-                                environment: clustersData[clusterName].environment 
+                                tier: clustersData[clusterName].tenant_tier || 'UNKNOWN'
                             };
                         }
                         locations[loc].clusters.push(clusterName);
@@ -83,8 +110,12 @@ export default function InventoryPage() {
                             namespaceUrl = clustersData[clusterName].url;
                         }
                         
-                        if (isInternal === null && clustersData[clusterName].is_internal !== undefined) {
-                            isInternal = clustersData[clusterName].is_internal;
+                        if (clustersData[clusterName].tenant_category) {
+                            tenantCategory = clustersData[clusterName].tenant_category;
+                            fullTenantData = clustersData[clusterName];
+                        }
+                        if (clustersData[clusterName].tenant_tier) {
+                            tenantTier = clustersData[clusterName].tenant_tier;
                         }
                     });
                     
@@ -107,14 +138,20 @@ export default function InventoryPage() {
                                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main', textTransform: 'uppercase' }}>
                                             {ns}
                                         </Typography>
-                                        {isInternal !== null && (
-                                            <Chip 
-                                                icon={isInternal ? <LockIcon fontSize="small"/> : <PublicIcon fontSize="small"/>}
-                                                label={isInternal ? 'INTERNAL' : 'CUSTOMER'} 
-                                                size="small" 
-                                                color={isInternal ? 'warning' : 'info'} 
-                                            />
-                                        )}
+                                        <Chip 
+                                            icon={tenantCategory === 'INTERNAL' ? <LockIcon fontSize="small"/> : <PublicIcon fontSize="small"/>}
+                                            label={tenantCategory} 
+                                            size="small" 
+                                            color={tenantCategory === 'INTERNAL' ? 'warning' : 'info'} 
+                                        />
+                                        <Chip 
+                                            label={tenantTier} 
+                                            size="small" 
+                                            variant="outlined"
+                                        />
+                                        <IconButton size="small" onClick={handleEditClick(ns, fullTenantData)}>
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
                                     </Box>
                                     {namespaceUrl && (
                                         <Button 
@@ -150,6 +187,15 @@ export default function InventoryPage() {
                     );
                 })
             )}
+            <EditCustomizationDialog
+                open={editDialogOpen}
+                onClose={() => setEditDialogOpen(false)}
+                tenantSlug={editTenantSlug}
+                currentData={editTenantData}
+                onSaveSuccess={() => {
+                    queryClient.invalidateQueries(['inventoryList']);
+                }}
+            />
         </Box>
     );
 }

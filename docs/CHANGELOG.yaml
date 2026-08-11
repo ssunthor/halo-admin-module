@@ -15,6 +15,64 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.1.6
+  date: "2026-08-11"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Identity Unification: Migrated identity tracking from legacy first names to unified full names for all GitOps release, retry, and delete operations. Identity is now securely resolved via the new `X-Forwarded-Full-Name` header."
+        - "Added capability to delete feature branches and container tags directly from the GitOps Project UI."
+        - "Introduced a dedicated 'Audit' tab in the GitOps Project Details Dialog to view the full, project-wide Git audit history, complete with searchable telemetry and pagination."
+        - "Implemented a collapsed 'Inactive / Deleted Releases' accordion at the bottom of the GitOps tab to display historical native releases that have been deleted."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Updated the `get_current_user` FastAPI dependency to extract and serve the new `X-Forwarded-Full-Name` header payload provided by the GIA Gateway."
+        - "Engineered the `/api/gitops/delete` REST endpoint to orchestrate GitOps deletions and auto-clear Redis cache topologies (`ham:gitops:inventory` and `ham:gitops:audit`) for synchronous UI updates."
+
+- version: 0.1.5
+  date: "2026-08-10"
+  author: "Martin Kecka"
+  changes:
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Added GitLab repository links to all branch and feature container cards in the GitOps tab for quick access to the source code."
+
+- version: 0.1.4
+  date: "2026-08-07"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Updated the `ProjectGitOpsTab` component to retrieve and display the `Branch Updated` timestamp from the backend for better release timeline tracking."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Refactored GitOps project layout to strictly isolate and nest 'Main' and 'Dev' core environments, placing their respective branch and historical release containers logically under a single environment group."
+        - "Added 'Branch' and 'Container' badge tags to GitOps items and introduced visual tree indentation for nested release containers to clarify the component hierarchy."
+    - category: "🐛 Bug Fixes & Resilience"
+      items:
+        - "Fixed a bug in `ProjectGitOpsTab` where the target branch was hardcoded to `master` when promoting from `dev`; it now correctly targets `main`."
+        - "Fixed a bug in GitOps author attribution where the system incorrectly fell back to the branch's original author (or `gia-ai`) instead of tracking the logged-in user who actually triggered the release action. It now explicitly maps `user.display_name` or `user.username`."
+
+- version: 0.1.3
+  date: "2026-08-03"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Added a dedicated 'HALO DOCUMENTATION' tab to the UI, dynamically grouping ecosystem documents by their frontmatter `Doc_Type` using visually separated Material UI section headers."
+        - "Upgraded the documentation accordion to natively parse and display document frontmatter attributes (Version, Author, Category, Status) as structured UI Chips above the markdown."
+        - "Integrated native `TIER` and `CATEGORY` tagging directly into the Inventory Dashboard, replacing the legacy `environment` and `is_internal` status chips."
+        - "Engineered the `EditCustomizationDialog` component to provide a comprehensive UI for managing complex GitOps tenant properties (Category, Tier, Update Policies, JSON Payload)."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Migrated the GitOps Mermaid diagram rendering logic into a unified, shared `Mermaid.jsx` component utilized seamlessly across both core documentation and project-specific views."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Engineered the `/api/docs/halo-tree` FastAPI endpoint to proxy HAU's global documentation tree, integrating a resilient 5-minute Redis caching layer to ensure zero-latency UI rendering."
+        - "Created the `/api/inventory/update-customization` REST endpoint to seamlessly parse, validate, and proxy tenant customization mutations down to the gRPC layer."
+        - "Expanded the `HAUConnector` with a native `update_tenant_customization` method mapped to the `UpdateTenantCustomization` HAU gRPC service."
+
 - version: 0.1.2
   date: "2026-07-30"
   author: "Martin Kecka"

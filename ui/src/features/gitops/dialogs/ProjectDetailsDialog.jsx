@@ -10,7 +10,8 @@ import ReleaseProgressDialog from './ReleaseProgressDialog';
 import ProjectChangelogTab from '../components/ProjectChangelogTab';
 import ProjectDocsTab from '../components/ProjectDocsTab';
 import ProjectGitOpsTab from '../components/ProjectGitOpsTab';
-import { useQuery } from '@tanstack/react-query';
+import ProjectAuditTab from '../components/ProjectAuditTab';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
@@ -36,10 +37,10 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
     const [selectedAuditLog, setSelectedAuditLog] = useState(null);
     const [releaseTaskId, setReleaseTaskId] = useState(null);
     const [showReleaseProgress, setShowReleaseProgress] = useState(false);
-    
+
     const [snackbarState, setSnackbarState] = useState({ open: false, message: '', severity: 'error' });
     const handleSnackbarClose = () => setSnackbarState(prev => ({ ...prev, open: false }));
-    const showError = (msg) => setSnackbarState({ open: true, message: msg, severity: 'error' });
+    const showError = (msg, severity = 'error') => setSnackbarState({ open: true, message: msg, severity });
     const [confirmState, setConfirmState] = useState({ open: false, title: '', message: '', onConfirm: null });
 
     const projectName = project?.name;
@@ -86,7 +87,7 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
         enabled: open && !!projectName && tabIndex === 1
     });
 
-    const { data: auditLogs } = useQuery({
+    const { data: auditLogs, isLoading: auditLogsLoading } = useQuery({
         queryKey: ['gitopsAudit', fullPath],
         queryFn: async () => {
             if (!fullPath) return null;
@@ -95,16 +96,16 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
             const json = await res.json();
             return json.data;
         },
-        enabled: open && !!fullPath && tabIndex === 2
+        enabled: open && !!fullPath && (tabIndex === 2 || tabIndex === 3)
     });
 
     // Take the most recent task state purely from the Redis backend. 
     // We intentionally removed the auditLogs cross-overwrite here to prevent new retries from falsely snapping to 'FAILED'.
     let activeTask = activeTasksData?.tasks?.[0];
 
-    const handleTriggerRelease = async (sourceBranch, targetBranch, author, isAlreadyMerged) => {
+    const handleTriggerRelease = async (sourceBranch, targetBranch, isAlreadyMerged) => {
         const title = 'Confirm Release';
-        const message = isAlreadyMerged 
+        const message = isAlreadyMerged
             ? `Warning: The branch ${sourceBranch} seems to be already merged. Do you want to proceed with a release anyway?`
             : `Are you sure you want to merge and release ${sourceBranch} to ${targetBranch}?`;
 
@@ -122,7 +123,7 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                             project_name: fullPath,
                             source_branch: sourceBranch,
                             target_branch: targetBranch,
-                            author: author || 'GIA AI Bot'
+                            author: user?.full_name || user?.display_name || user?.username || 'Unknown'
                         })
                     });
                     const data = await res.json();
@@ -133,14 +134,14 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                     } else {
                         showError("Failed to start release task");
                     }
-                } catch(e) {
+                } catch (e) {
                     showError("Error triggering release: " + e.message);
                 }
             }
         });
     };
 
-    const handleTriggerRetry = async (pipelineId, mergeId, author) => {
+    const handleTriggerRetry = async (pipelineId, mergeId) => {
         setConfirmState({
             open: true,
             title: 'Confirm Retry',
@@ -155,7 +156,7 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                             project_name: fullPath,
                             pipeline_id: parseInt(pipelineId) || 0,
                             merge_id: parseInt(mergeId) || 0,
-                            author: author || 'GIA AI Bot'
+                            author: user?.full_name || user?.display_name || user?.username || 'Unknown'
                         })
                     });
                     const data = await res.json();
@@ -168,6 +169,44 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                     }
                 } catch (err) {
                     showError("Error triggering retry: " + err.message);
+                }
+            }
+        });
+    };
+
+    const { data: user } = useQuery({ queryKey: ['user'] });
+    const queryClient = useQueryClient();
+
+    const handleTriggerDelete = (branchName, containerTag) => {
+        const targetName = branchName || containerTag;
+        setConfirmState({
+            open: true,
+            title: 'Confirm Deletion',
+            message: `Are you sure you want to delete ${targetName}? This action cannot be undone.`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({ ...prev, open: false }));
+                showError(`Deleting ${targetName}...`, 'info');
+                try {
+                    const res = await fetch('/api/gitops/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_name: fullPath,
+                            branch_name: branchName || "",
+                            container_tag: containerTag || "",
+                            author: user?.full_name || user?.display_name || user?.username || "Unknown"
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showError(`Successfully deleted ${targetName}.`, 'success');
+                        queryClient.invalidateQueries({ queryKey: ['gitopsInventory'] });
+                        queryClient.invalidateQueries({ queryKey: ['gitopsAudit'] });
+                    } else {
+                        showError(`Failed to delete ${targetName}.`);
+                    }
+                } catch (e) {
+                    showError("Error triggering deletion: " + e.message);
                 }
             }
         });
@@ -200,10 +239,11 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                         <Tab label="CHANGELOG" />
                         <Tab label="DOCUMENTATION" />
                         <Tab label="GITOPS" />
+                        <Tab label="AUDIT" />
                     </Tabs>
                 </Box>
             </DialogTitle>
-            
+
             <DialogContent sx={{ p: 0 }}>
                 <TabPanel value={tabIndex} index={0}>
                     <ProjectChangelogTab changelogData={changelogData} isLoading={changelogLoading} />
@@ -214,15 +254,24 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                 </TabPanel>
 
                 <TabPanel value={tabIndex} index={2}>
-                    <ProjectGitOpsTab 
-                        project={project} 
-                        auditLogs={auditLogs} 
-                        activeTask={activeTask} 
+                    <ProjectGitOpsTab
+                        project={project}
+                        auditLogs={auditLogs}
+                        activeTask={activeTask}
                         handleTriggerRelease={handleTriggerRelease}
                         handleTriggerRetry={handleTriggerRetry}
-                        setSelectedAuditLog={setSelectedAuditLog} 
-                        setReleaseTaskId={setReleaseTaskId} 
-                        setShowReleaseProgress={setShowReleaseProgress} 
+                        handleTriggerDelete={handleTriggerDelete}
+                        setSelectedAuditLog={setSelectedAuditLog}
+                        setReleaseTaskId={setReleaseTaskId}
+                        setShowReleaseProgress={setShowReleaseProgress}
+                    />
+                </TabPanel>
+
+                <TabPanel value={tabIndex} index={3}>
+                    <ProjectAuditTab
+                        auditLogs={auditLogs}
+                        isLoading={auditLogsLoading}
+                        onShowAuditDetails={setSelectedAuditLog}
                     />
                 </TabPanel>
             </DialogContent>

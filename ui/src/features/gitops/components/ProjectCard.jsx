@@ -4,6 +4,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ProjectDetailsDialog from '../dialogs/ProjectDetailsDialog';
 
 export default function ProjectCard({ project }) {
@@ -73,6 +74,7 @@ export default function ProjectCard({ project }) {
 
         checkContainers(inventory.releases);
         checkContainers(inventory.pre_releases);
+        checkContainers(inventory.core_environments);
         checkContainers(inventory.features);
         checkContainers(inventory.standalone_features);
         
@@ -103,11 +105,24 @@ export default function ProjectCard({ project }) {
 
     const allTagsCount = (inventory.releases?.length || 0) + 
                          (inventory.pre_releases?.length || 0) + 
+                         (inventory.core_environments?.length || 0) + 
                          (inventory.features?.length || 0) + 
                          activeStandaloneFeatures.length;
 
-    const allBranchesCount = (inventory.features?.length || 0) + 
+    const allBranchesCount = (inventory.core_environments?.length || 0) + 
+                             (inventory.features?.length || 0) + 
                              (inventory.active_branches_without_containers?.length || 0);
+
+    const nativeReleasesCount = [
+        ...(inventory.releases || []),
+        ...(inventory.pre_releases || []),
+        ...(inventory.core_environments || []),
+        ...(inventory.features || []),
+        ...(inventory.standalone_features || [])
+    ].filter(t => t.has_native_release).length;
+
+    const latestDevRelease = inventory.pre_releases?.[0]?.tag || inventory.pre_releases?.[0]?.container_tag;
+    const latestProdRelease = inventory.releases?.[0]?.tag || inventory.releases?.[0]?.container_tag;
 
     return (
         <>
@@ -135,6 +150,18 @@ export default function ProjectCard({ project }) {
                             {actualPath}
                         </Typography>
                     </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 'fit-content', ml: 2 }}>
+                        {latestProdRelease && (
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 'bold' }}>
+                                {latestProdRelease}
+                            </Typography>
+                        )}
+                        {latestDevRelease && (
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'warning.main', fontWeight: 'bold' }}>
+                                {latestDevRelease}
+                            </Typography>
+                        )}
+                    </Box>
                 </Box>
                 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
@@ -148,6 +175,14 @@ export default function ProjectCard({ project }) {
                         size="small" 
                         icon={<AccountTreeIcon fontSize="small"/>} 
                         label={`${allBranchesCount} Branches`} 
+                        variant="outlined" 
+                        sx={{ border: 'none' }}
+                    />
+                    <Chip 
+                        size="small" 
+                        icon={<RocketLaunchIcon fontSize="small"/>} 
+                        label={`${nativeReleasesCount} Releases`} 
+                        color={nativeReleasesCount > 0 ? "success" : "default"}
                         variant="outlined" 
                         sx={{ border: 'none' }}
                     />
