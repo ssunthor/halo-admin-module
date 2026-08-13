@@ -64,6 +64,53 @@ class HAUConnector:
             logger.error(f"Error fetching inventory: {e}")
             raise
 
+    def list_features(self) -> list:
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.ListFeaturesRequest()
+        try:
+            resp = self.stub.ListFeatures(req, metadata=self.metadata, timeout=10)
+            if not resp.success:
+                raise Exception(f"Failed to list features: {resp.message}")
+            return [{
+                "id": f.id,
+                "feature_name": f.feature_name,
+                "description": f.description,
+                "product_category": f.product_category,
+                "ui_grouping": f.ui_grouping,
+                "env_variable": f.env_variable,
+                "gitops_dependencies_json": f.gitops_dependencies_json,
+                "is_paid_addon": f.is_paid_addon,
+                "enabled_by_default": f.enabled_by_default,
+                "pricing_tiers_json": f.pricing_tiers_json
+            } for f in resp.features]
+        except Exception as e:
+            logger.error(f"Error listing features: {e}")
+            raise
+
+    def upsert_feature(self, payload: dict) -> dict:
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.UpsertFeatureRequest(
+            feature_name=payload.get("feature_name", ""),
+            description=payload.get("description", ""),
+            product_category=payload.get("product_category", ""),
+            ui_grouping=payload.get("ui_grouping", ""),
+            env_variable=payload.get("env_variable", ""),
+            gitops_dependencies_json=payload.get("gitops_dependencies_json", "{}"),
+            is_paid_addon=payload.get("is_paid_addon", False),
+            enabled_by_default=payload.get("enabled_by_default", False),
+            pricing_tiers_json=payload.get("pricing_tiers_json", "{}")
+        )
+        try:
+            resp = self.stub.UpsertFeature(req, metadata=self.metadata, timeout=10)
+            return {"success": resp.success, "message": resp.message}
+        except Exception as e:
+            logger.error(f"Error upserting feature: {e}")
+            raise
+
     def update_tenant_customization(self, payload: dict) -> dict:
         if not self.stub:
             raise Exception("HAU Connector is not connected.")

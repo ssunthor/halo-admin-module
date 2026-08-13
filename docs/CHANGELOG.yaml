@@ -15,6 +15,21 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.1.7
+  date: "2026-08-13"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Implemented the `Configuration` tab to manage the Halo ecosystem Feature Catalog. [NEEDS_DOCS]"
+        - "Added a dedicated `FeatureCatalogTable` DataGrid grouped dynamically by product category with explicit structural alignment."
+        - "Created `EditFeatureDialog` allowing users to mutate HAU configurations natively via the UI."
+        - "Integrated GitOps dependency selector that queries live Git inventory and intelligently extracts strict versions for projects with `has_native_release`."
+        - "Built a dynamic pricing table parser to cleanly visualize complex asset range matrices for paid add-ons."
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Exposed `/api/configuration/features` via FastAPI to proxy backend `ListFeatures` and `UpsertFeature` gRPC endpoints."
+
 - version: 0.1.6
   date: "2026-08-11"
   author: "Martin Kecka"

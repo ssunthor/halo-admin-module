@@ -17,7 +17,7 @@ from core.connectors.hau_connector import HAUConnector
 from core.database.database import get_engine, get_session_factory, init_db
 from core.io_handlers.redis_handler import RedisHandler
 
-from rest_api.routers import inventory, users, docs, gitops
+from rest_api.routers import inventory, users, docs, gitops, configuration
 import random
 
 config = load_config()
@@ -117,6 +117,7 @@ app.include_router(inventory.router)
 app.include_router(users.router)
 app.include_router(docs.router)
 app.include_router(gitops.router)
+app.include_router(configuration.router)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))

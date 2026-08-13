@@ -123,7 +123,7 @@ export default function ProjectAuditTab({ auditLogs, isLoading, onShowAuditDetai
                                         <Chip label={log.action} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
                                     </TableCell>
                                     <TableCell>{log.actor || 'Unknown'}</TableCell>
-                                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={path}>
+                                    <TableCell sx={{ maxWidth: 200, wordBreak: 'break-word', whiteSpace: 'normal' }}>
                                         {path}
                                     </TableCell>
                                     <TableCell>
@@ -137,7 +137,7 @@ export default function ProjectAuditTab({ auditLogs, isLoading, onShowAuditDetai
                                         />
                                     </TableCell>
                                     <TableCell sx={{ fontSize: '0.75rem' }}>
-                                        {log.triggered_by || log.method || 'N/A'}
+                                        {log.triggered_by || log.method || log.changelog_generation_method || 'N/A'}
                                     </TableCell>
                                     <TableCell align="center">
                                         <Tooltip title="View Details">
