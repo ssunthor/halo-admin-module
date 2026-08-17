@@ -138,7 +138,8 @@ export default function FeatureCatalogTable({ features }) {
                 <EditFeatureDialog 
                     open={!!editFeature} 
                     onClose={handleCloseEdit} 
-                    feature={editFeature} 
+                    feature={editFeature}
+                    allFeatures={features}
                     onSaveSuccess={handleSaveSuccess} 
                 />
             )}

@@ -15,7 +15,7 @@ const fetchGitOpsInventory = async () => {
     return json.data || { projects: [] };
 };
 
-export default function EditFeatureDialog({ open, onClose, feature, onSaveSuccess }) {
+export default function EditFeatureDialog({ open, onClose, feature, allFeatures = [], onSaveSuccess }) {
     const [formData, setFormData] = useState({});
     const [dependencies, setDependencies] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -53,12 +53,7 @@ export default function EditFeatureDialog({ open, onClose, feature, onSaveSucces
         return Array.from(versions).sort().reverse();
     };
 
-    const PRODUCT_CATEGORIES = [
-        "Defense Halo Detect",
-        "Defense Halo Command",
-        "Defense Halo Recon - Configuration",
-        "Defense Halo Recon - CVE"
-    ];
+    const PRODUCT_CATEGORIES = Array.from(new Set(allFeatures.map(f => f.product_category))).filter(Boolean).sort();
 
     useEffect(() => {
         if (feature) {
