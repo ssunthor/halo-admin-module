@@ -3,10 +3,21 @@ import yaml
 import logging
 import zipfile
 import io
+import tempfile
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from pydantic import BaseModel
+try:
+    from weasyprint import HTML as WeasyHTML
+except ImportError:
+    WeasyHTML = None
 from utils.config_loader import load_config
 from core.connectors.hau_connector import HAUConnector
+
+class PdfExportRequest(BaseModel):
+    markdown: str
+    html: str = ""
+    filename: str
 
 logger = logging.getLogger(__name__)
 
@@ -132,3 +143,25 @@ def download_doc(module_id: str):
         raise HTTPException(status_code=404, detail="File not found")
         
     return FileResponse(file_path, filename=os.path.basename(file_path))
+
+@router.post("/export-pdf")
+def export_pdf(req_data: PdfExportRequest):
+    if not WeasyHTML:
+        raise HTTPException(status_code=501, detail="weasyprint library is not installed. Please install dependencies.")
+    
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp_path = tmp.name
+        
+        # WeasyPrint can render the HTML containing pre-rendered SVGs from the frontend
+        WeasyHTML(string=req_data.html).write_pdf(tmp_path)
+        
+        return FileResponse(
+            tmp_path, 
+            media_type="application/pdf", 
+            filename=f"{req_data.filename}.pdf",
+            headers={"Content-Disposition": f"attachment; filename={req_data.filename}.pdf"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to export PDF: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")

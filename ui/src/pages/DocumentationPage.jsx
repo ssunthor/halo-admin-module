@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Button, Tabs, Tab, Typography, Divider, Chip } from '@mui/material';
+import { Box, CircularProgress, Alert, Button, Tabs, Tab, Typography, Divider, Chip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChangelogViewer from '../features/documentation/components/ChangelogViewer';
 import DocumentationAccordion from '../features/documentation/components/DocumentationAccordion';
 import HaloDocAccordion from '../features/documentation/components/HaloDocAccordion';
@@ -59,6 +60,27 @@ function DocumentationPage() {
 
         if (filteredDocs.length === 0) return null;
 
+        if (docTypeFilter === 'archive') {
+            return (
+                <Box sx={{ mb: 4 }}>
+                    <Accordion sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, color: 'primary.main' }}>{title}</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ p: 2, backgroundColor: 'background.default' }}>
+                            {filteredDocs.map((doc, idx) => (
+                                <HaloDocAccordion 
+                                    key={doc.filename}
+                                    doc={doc}
+                                    defaultExpanded={false}
+                                />
+                            ))}
+                        </AccordionDetails>
+                    </Accordion>
+                </Box>
+            );
+        }
+
         return (
             <Box sx={{ mb: 4 }}>
                 <Divider sx={{ my: 4 }}>
@@ -101,8 +123,10 @@ function DocumentationPage() {
                         <Alert severity="error" sx={{ mb: 2 }}>Failed to load HALO documentation: {haloDocsError.message}</Alert>
                     )}
                     {renderHaloCategory("Ecosystem", "ecosystem")}
+                    {renderHaloCategory("Intellectual Property", "Patent Disclosure")}
                     {renderHaloCategory("Concept", "concept")}
                     {renderHaloCategory("Architecture & Design", "architecture")}
+                    {renderHaloCategory("Archive", "archive")}
                     {renderHaloCategory("Other", "unknown")}
                 </Box>
             )}

@@ -1,30 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Box } from '@mui/material';
 import mermaid from 'mermaid';
 
-mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+// Set htmlLabels to false so that WeasyPrint (which doesn't support foreignObject) can render the text natively as SVG <text> elements
+mermaid.initialize({ startOnLoad: false, theme: 'dark', htmlLabels: false });
 
 const Mermaid = ({ code }) => {
     const ref = useRef(null);
-    const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting) {
-                setIsVisible(true);
-                observer.disconnect();
-            }
-        }, { threshold: 0.01 });
-
-        if (ref.current) {
-            observer.observe(ref.current);
-        }
-
-        return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-        if (isVisible && ref.current && code) {
+        if (ref.current && code) {
             const id = 'mermaid-' + Math.random().toString(36).substring(2, 10);
             mermaid.render(id, code).then(({ svg }) => {
                 if (ref.current) ref.current.innerHTML = svg;
@@ -33,7 +18,7 @@ const Mermaid = ({ code }) => {
                 if (ref.current) ref.current.innerHTML = `<pre>${code}</pre>`;
             });
         }
-    }, [code, isVisible]);
+    }, [code]);
     
     return <Box ref={ref} sx={{ display: 'flex', justifyContent: 'center', my: 2, bgcolor: 'background.default', p: 2, borderRadius: 1 }} />;
 };

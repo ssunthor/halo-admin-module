@@ -13,3 +13,4 @@ grpcio-tools
 googleapis-common-protos
 
 redis>=5.0.0
+weasyprint

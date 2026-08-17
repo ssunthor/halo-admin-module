@@ -15,6 +15,24 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.1.8
+  date: "2026-08-17"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Added capability to export Halo documentation directly to PDF with high-DPI diagram rendering."
+        - "Added capability to download raw Markdown files from the Halo documentation viewer."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Redesigned the Halo documentation accordion layout, moving metadata to a dedicated row below the title."
+        - "Moved the project name chip to the actions container and made it natively clickable to open the GitOps repository."
+        - "Wrapped the Archive document category in a collapsed accordion by default to declutter the UI."
+    - category: "🐛 Bug Fixes & Resilience"
+      items:
+        - "Resolved WeasyPrint diagram rendering issues by manually converting Mermaid SVGs to PNGs on a dark canvas on the frontend."
+        - "Fixed Mermaid lazy-loading (IntersectionObserver) preventing diagrams from appearing in PDF exports."
+
 - version: 0.1.7
   date: "2026-08-13"
   author: "Martin Kecka"
