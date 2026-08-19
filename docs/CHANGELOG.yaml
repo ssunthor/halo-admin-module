@@ -15,6 +15,21 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.1.9
+  date: "2026-08-18"
+  author: "Martin Kecka"
+  changes:
+    - "category": "✨ New Features & Enhancements"
+      "items":
+      - "Added Orchestration Trace Logs to the Audit details view to provide deeper visibility into pipeline execution steps."
+      - "Implemented a task progress trigger for running GitOps operations, allowing users to open the release progress view directly from the status indicator."
+    - "category": "\U0001F3A8 UI / UX Improvements"
+      "items":
+      - "Added a visual '(allowed to fail)' indicator for failed jobs in the audit history to distinguish between critical and non-critical failures."
+    - "category": "\U0001F41B Bug Fixes & Resilience"
+      "items":
+      - "Improved project identification in the GitOps retry mechanism by utilizing the full project path instead of only the project name."
+
 - version: 0.1.8
   date: "2026-08-17"
   author: "Martin Kecka"

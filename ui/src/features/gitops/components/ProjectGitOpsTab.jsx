@@ -182,14 +182,27 @@ export default function ProjectGitOpsTab({
         if (isAuditRunning) {
             return (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
-                    <Chip
-                        size="small"
-                        icon={<PendingIcon fontSize="small" />}
-                        label="RUNNING"
-                        color="warning"
-                        variant="outlined"
-                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 'bold' }}
-                    />
+                    {activeTask?.status === 'RUNNING' ? (
+                        <Button
+                            variant="outlined"
+                            color="info"
+                            size="small"
+                            startIcon={<TerminalIcon fontSize="small" />}
+                            sx={{ height: 24, fontSize: '0.7rem' }}
+                            onClick={() => { setReleaseTaskId(activeTask.task_id); setShowReleaseProgress(true); }}
+                        >
+                            Task Running...
+                        </Button>
+                    ) : (
+                        <Chip
+                            size="small"
+                            icon={<PendingIcon fontSize="small" />}
+                            label="RUNNING"
+                            color="warning"
+                            variant="outlined"
+                            sx={{ height: 24, fontSize: '0.7rem', fontWeight: 'bold' }}
+                        />
+                    )}
                 </Box>
             );
         }
@@ -417,7 +430,7 @@ export default function ProjectGitOpsTab({
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
-                                                {t.branch !== 'dev' && t.branch !== 'master' && t.branch !== 'main' && (title && title.includes("Active Features")) && renderTaskActions(t.branch, 'dev', isMerged)}
+                                                {t.branch !== 'dev' && t.branch !== 'master' && t.branch !== 'main' && ((title && title.includes("Active Features")) || hideTitle) && renderTaskActions(t.branch, 'dev', isMerged)}
                                                 {inUse && (
                                                     <Tooltip title={t.active_namespaces?.length > 0 ? buildNamespacesTooltip(t.active_namespaces) : ''} {...tooltipProps}>
                                                         <Chip size="small" label={`Active Deployments: ${activeDeployments}`} color="success" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'rgba(46, 125, 50, 0.1)' }} variant="outlined" />

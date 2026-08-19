@@ -35,6 +35,7 @@ function AuditAccordion({ audit, defaultExpanded, project, onRetry, setConfirmSt
     const jobs = job_details_json?.jobs || [];
     const footprint = job_details_json?.footprint_mb;
     const pipeline_id = job_details_json?.pipeline_id || audit.pipeline_id;
+    const traceLogs = job_details_json?.trace_logs || [];
 
     const handleRetry = (e) => {
         e.stopPropagation();
@@ -45,11 +46,12 @@ function AuditAccordion({ audit, defaultExpanded, project, onRetry, setConfirmSt
             onConfirm: async () => {
                 setConfirmState(prev => ({ ...prev, open: false }));
                 try {
+                    const fullPath = project?.path || project?.fullPath || project?.name;
                     const res = await fetch('/api/gitops/retry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            project_name: project?.name,
+                            project_name: fullPath,
                             pipeline_id: parseInt(pipeline_id) || 0,
                             merge_id: parseInt(merge_request_id) || 0,
                             author: 'GIA AI Bot'
@@ -187,7 +189,12 @@ function AuditAccordion({ audit, defaultExpanded, project, onRetry, setConfirmSt
                                         <TableCell>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                 {getStatusIcon(job.status)}
-                                                <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>{job.status}</Typography>
+                                                <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
+                                                    {job.status}
+                                                    {job.allow_failure && job.status?.toLowerCase() === 'failed' && (
+                                                        <span style={{ color: '#ed6c02', marginLeft: '4px' }}>(allowed to fail)</span>
+                                                    )}
+                                                </Typography>
                                             </Box>
                                         </TableCell>
                                         <TableCell align="right">
@@ -203,6 +210,30 @@ function AuditAccordion({ audit, defaultExpanded, project, onRetry, setConfirmSt
                                 ))}
                             </TableBody>
                         </Table>
+                    </Box>
+                )}
+                
+                {traceLogs.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>Orchestration Trace Logs</Typography>
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: '#1e1e1e', color: '#d4d4d4', overflowX: 'auto' }}>
+                            <Box sx={{ fontFamily: 'monospace', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {traceLogs.map((log, idx) => {
+                                    if (typeof log === 'string') {
+                                        return <Typography key={idx} variant="inherit" sx={{ whiteSpace: 'pre-wrap' }}>{log}</Typography>;
+                                    }
+                                    if (log && typeof log === 'object') {
+                                        const color = log.success === false ? '#f44336' : (log.success === true ? '#4caf50' : 'inherit');
+                                        return (
+                                            <Typography key={idx} variant="inherit" sx={{ color, whiteSpace: 'pre-wrap' }}>
+                                                [{log.stage || 'INFO'}] {log.message || JSON.stringify(log)}
+                                            </Typography>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </Box>
+                        </Paper>
                     </Box>
                 )}
             </AccordionDetails>
