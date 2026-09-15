@@ -13,7 +13,7 @@ def get_hau_connector(request: Request):
 def get_inventory(request: Request, tenant: str = ""):
     connector = get_hau_connector(request)
     try:
-        data = connector.get_inventory(tenant_slug=tenant)
+        data = connector.get_inventory(tenant_namespace=tenant)
         return {"success": True, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

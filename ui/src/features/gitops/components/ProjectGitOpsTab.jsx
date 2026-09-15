@@ -299,6 +299,11 @@ export default function ProjectGitOpsTab({
                             {b.branch === 'dev' && renderTaskActions(b.branch, 'main', false)}
                             {b.branch !== 'dev' && b.branch !== 'master' && b.branch !== 'main' && renderTaskActions(b.branch, 'dev', false)}
                             {renderDeleteAction(b.branch, null, b.branch === 'dev' || b.branch === 'main' || b.branch === 'master')}
+                            {(b.active_deployments || 0) > 0 && (
+                                <Tooltip title={b.active_namespaces?.length > 0 ? buildNamespacesTooltip(b.active_namespaces) : ''} {...tooltipProps}>
+                                    <Chip size="small" label={`Active Deployments: ${b.active_deployments}`} color="success" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'rgba(46, 125, 50, 0.1)' }} variant="outlined" />
+                                </Tooltip>
+                            )}
                         </Box>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -430,7 +435,7 @@ export default function ProjectGitOpsTab({
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
-                                                {t.branch !== 'dev' && t.branch !== 'master' && t.branch !== 'main' && ((title && title.includes("Active Features")) || hideTitle) && renderTaskActions(t.branch, 'dev', isMerged)}
+                                                {t.branch !== 'dev' && t.branch !== 'master' && t.branch !== 'main' && (title && title.includes("Active Features")) && renderTaskActions(t.branch, 'dev', isMerged)}
                                                 {inUse && (
                                                     <Tooltip title={t.active_namespaces?.length > 0 ? buildNamespacesTooltip(t.active_namespaces) : ''} {...tooltipProps}>
                                                         <Chip size="small" label={`Active Deployments: ${activeDeployments}`} color="success" sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'rgba(46, 125, 50, 0.1)' }} variant="outlined" />

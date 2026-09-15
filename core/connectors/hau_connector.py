@@ -49,11 +49,11 @@ class HAUConnector:
     def ping(self) -> Dict[str, Any]:
         return {"status": "ok", "message": "HAU Connector scaffolded."}
 
-    def get_inventory(self, tenant_slug: str = "") -> Dict[str, Any]:
+    def get_inventory(self, tenant_namespace: str = "") -> Dict[str, Any]:
         if not self.stub:
             raise Exception("HAU Connector is not connected.")
         
-        req = self.hau_pb2.InventoryListRequest(tenant_slug=tenant_slug)
+        req = self.hau_pb2.InventoryListRequest(tenant_namespace=tenant_namespace)
         try:
             resp = self.stub.InventoryList(req, metadata=self.metadata, timeout=self.timeout)
             if not resp.success:
@@ -116,7 +116,7 @@ class HAUConnector:
             raise Exception("HAU Connector is not connected.")
             
         req = self.hau_pb2.UpdateTenantCustomizationRequest(
-            tenant_slug=payload.get("tenant_slug", ""),
+            tenant_namespace=payload.get("tenant_slug", ""),
             tenant_category=payload.get("tenant_category", ""),
             tenant_tier=payload.get("tenant_tier", ""),
             update_policy=payload.get("update_policy", ""),
