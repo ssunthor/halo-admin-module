@@ -15,6 +15,20 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.1
+  date: "2026-09-21"
+  author: "Martin Kecka"
+  changes:
+    - 'category': '✨ New Features & Enhancements'
+      'items':
+      - 'Updated the "Release Only" button visibility logic in `ProjectGitOpsTab.jsx` to compare branch container creation time against the latest semantic version release, rather than the unversioned branch last updated timestamp.'
+      - 'Added a new `/api/gitops/cache/clear` endpoint to allow forceful invalidation of GitOps inventory and audit logs from Redis.'
+      - 'Updated `ProjectDetailsDialog.jsx` to automatically invoke the cache clear endpoint and invalidate React Query caches immediately upon closing the `ReleaseProgressDialog`.'
+    - 'category': '🐛 Bug Fixes & Resilience'
+      'items':
+      - 'Fixed an issue where branch update timestamps were missing or improperly displayed by aligning variables in `ProjectGitOpsTab.jsx` with the standardized backend inventory schema.'
+      - 'Updated the `isAuditRunning` check in `ProjectGitOpsTab.jsx` to include `target_branch`, ensuring the "Task Running..." indicator correctly displays for environment branches during active releases.'
+
 - version: 0.2.0
   date: "2026-09-15"
   author: "Martin Kecka"

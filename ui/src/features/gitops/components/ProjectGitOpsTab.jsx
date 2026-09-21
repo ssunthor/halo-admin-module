@@ -5,6 +5,8 @@ import CallMergeIcon from '@mui/icons-material/CallMerge';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CodeIcon from '@mui/icons-material/Code';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
@@ -90,7 +92,7 @@ export default function ProjectGitOpsTab({
     project?.inventory?.pre_releases?.forEach(r => r.source_feature && mergedFeatures.add(r.source_feature));
     project?.inventory?.releases?.forEach(r => r.source_feature && mergedFeatures.add(r.source_feature));
 
-    const renderTaskActions = (branchName, targetBranch, isMerged) => {
+    const renderTaskActions = (branchName, targetBranch, isMerged, needsRelease = false) => {
         const onRetryClick = () => {
             const latestAuditForBranch = auditLogs?.find(a => a.source_branch === branchName || a.version_tag === branchName);
             const pipelineId = latestAuditForBranch?.job_details_json?.pipeline_id || latestAuditForBranch?.pipeline_id;
@@ -175,7 +177,7 @@ export default function ProjectGitOpsTab({
         }
 
         const isAuditRunning = auditLogs?.some(a =>
-            (a.source_branch === branchName || a.version_tag === branchName) &&
+            (a.target_branch === branchName || a.source_branch === branchName || a.version_tag === branchName) &&
             a.status === 'RUNNING'
         );
 
@@ -210,16 +212,32 @@ export default function ProjectGitOpsTab({
         if (!canPromote) return null;
 
         return (
-            <Button
-                variant="contained"
-                size="small"
-                color={targetBranch === 'main' ? 'secondary' : 'primary'}
-                startIcon={<RocketLaunchIcon fontSize="small" />}
-                sx={{ ml: 2, height: 24, fontSize: '0.7rem' }}
-                onClick={() => handleTriggerRelease(branchName, targetBranch, isMerged)}
-            >
-                {targetBranch === 'main' ? 'Promote to Main' : 'Promote'}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                {branchName !== targetBranch && (
+                    <Button
+                        variant="contained"
+                        size="small"
+                        color={targetBranch === 'main' ? 'secondary' : 'primary'}
+                        startIcon={<RocketLaunchIcon fontSize="small" />}
+                        sx={{ height: 24, fontSize: '0.7rem' }}
+                        onClick={() => handleTriggerRelease(branchName, targetBranch, isMerged)}
+                    >
+                        {targetBranch === 'main' ? 'Promote to Main' : 'Promote'}
+                    </Button>
+                )}
+                {needsRelease && (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        color="warning"
+                        startIcon={<RocketLaunchIcon fontSize="small" />}
+                        sx={{ height: 24, fontSize: '0.7rem' }}
+                        onClick={() => handleTriggerRelease(branchName, branchName, false, true)}
+                    >
+                        Release Only
+                    </Button>
+                )}
+            </Box>
         );
     };
 
@@ -259,6 +277,26 @@ export default function ProjectGitOpsTab({
         const bgColor = isFailed ? 'rgba(211, 47, 47, 0.05)' : 'background.paper';
         const auditsForBranch = auditLogs?.filter(a => a.source_branch === b.branch) || [];
         const author = b.author || b.branch_author || 'Unknown';
+        
+        const isCoreEnv = b.branch === 'dev' || b.branch === 'main' || b.branch === 'master';
+        const lastUpdated = new Date(b.container_created || b.created_at || b.last_updated_at || 0).getTime();
+        
+        let needsRelease = false;
+        if (isCoreEnv) {
+            let latestReleaseTime = 0;
+            if (b.branch === 'dev') {
+                const preReleases = project.inventory?.pre_releases || [];
+                if (preReleases.length > 0) {
+                    latestReleaseTime = new Date(preReleases[0].created_at || preReleases[0].container_created || 0).getTime();
+                }
+            } else {
+                const releases = project.inventory?.releases || [];
+                if (releases.length > 0) {
+                    latestReleaseTime = new Date(releases[0].created_at || releases[0].container_created || 0).getTime();
+                }
+            }
+            needsRelease = latestReleaseTime === 0 || lastUpdated > latestReleaseTime;
+        }
 
         return (
             <Paper key={b.branch} sx={{ p: 1.5, borderLeft: 4, borderColor: cardBorderColor, bgcolor: bgColor }} variant="outlined">
@@ -279,7 +317,7 @@ export default function ProjectGitOpsTab({
                                         size="small"
                                         sx={{ p: 0.5 }}
                                     >
-                                        <OpenInNewIcon fontSize="inherit" color="primary" />
+                                        <CodeIcon fontSize="inherit" color="primary" />
                                     </IconButton>
                                 </Tooltip>
                             )}
@@ -296,8 +334,9 @@ export default function ProjectGitOpsTab({
                                 </Tooltip>
                             )}
 
-                            {b.branch === 'dev' && renderTaskActions(b.branch, 'main', false)}
-                            {b.branch !== 'dev' && b.branch !== 'master' && b.branch !== 'main' && renderTaskActions(b.branch, 'dev', false)}
+                            {b.branch === 'main' && renderTaskActions(b.branch, 'main', false, needsRelease)}
+                            {b.branch === 'dev' && renderTaskActions(b.branch, 'main', false, needsRelease)}
+                            {b.branch !== 'dev' && b.branch !== 'master' && b.branch !== 'main' && renderTaskActions(b.branch, 'dev', false, false)}
                             {renderDeleteAction(b.branch, null, b.branch === 'dev' || b.branch === 'main' || b.branch === 'master')}
                             {(b.active_deployments || 0) > 0 && (
                                 <Tooltip title={b.active_namespaces?.length > 0 ? buildNamespacesTooltip(b.active_namespaces) : ''} {...tooltipProps}>
@@ -398,7 +437,7 @@ export default function ProjectGitOpsTab({
                                                             size="small"
                                                             sx={{ p: 0.5 }}
                                                         >
-                                                            <OpenInNewIcon fontSize="inherit" color="primary" />
+                                                            <CodeIcon fontSize="inherit" color="primary" />
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
@@ -413,7 +452,7 @@ export default function ProjectGitOpsTab({
                                                             size="small"
                                                             sx={{ p: 0.5 }}
                                                         >
-                                                            <OpenInNewIcon fontSize="inherit" color="primary" />
+                                                            <LocalOfferIcon fontSize="inherit" color="primary" />
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}

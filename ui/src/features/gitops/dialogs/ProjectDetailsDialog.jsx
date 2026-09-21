@@ -103,11 +103,17 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
     // We intentionally removed the auditLogs cross-overwrite here to prevent new retries from falsely snapping to 'FAILED'.
     let activeTask = activeTasksData?.tasks?.[0];
 
-    const handleTriggerRelease = async (sourceBranch, targetBranch, isAlreadyMerged) => {
+    const handleTriggerRelease = async (sourceBranch, targetBranch, isAlreadyMerged, releaseOnly = false) => {
         const title = 'Confirm Release';
-        const message = isAlreadyMerged
-            ? `Warning: The branch ${sourceBranch} seems to be already merged. Do you want to proceed with a release anyway?`
-            : `Are you sure you want to merge and release ${sourceBranch} to ${targetBranch}?`;
+        
+        let message = '';
+        if (releaseOnly) {
+            message = `Are you sure you want to trigger a release-only sync for ${sourceBranch}? This will not create a merge request.`;
+        } else {
+            message = isAlreadyMerged
+                ? `Warning: The branch ${sourceBranch} seems to be already merged. Do you want to proceed with a release anyway?`
+                : `Are you sure you want to merge and release ${sourceBranch} to ${targetBranch}?`;
+        }
 
         setConfirmState({
             open: true,
@@ -123,7 +129,8 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
                             project_name: fullPath,
                             source_branch: sourceBranch,
                             target_branch: targetBranch,
-                            author: user?.full_name || user?.display_name || user?.username || 'Unknown'
+                            author: user?.full_name || user?.display_name || user?.username || 'Unknown',
+                            release_only: releaseOnly
                         })
                     });
                     const data = await res.json();
@@ -299,9 +306,20 @@ export default function ProjectDetailsDialog({ open, onClose, project }) {
 
             <ReleaseProgressDialog
                 open={showReleaseProgress}
-                onClose={() => {
+                onClose={async () => {
                     setShowReleaseProgress(false);
                     refetchTasks();
+                    try {
+                        await fetch('/api/gitops/cache/clear', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ project_name: fullPath })
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['gitopsInventory'] });
+                        queryClient.invalidateQueries({ queryKey: ['gitopsAudit'] });
+                    } catch (e) {
+                        console.error('Failed to clear cache:', e);
+                    }
                 }}
                 taskId={releaseTaskId}
                 project={projectName}

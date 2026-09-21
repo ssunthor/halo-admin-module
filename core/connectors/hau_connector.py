@@ -230,7 +230,7 @@ class HAUConnector:
             logger.error(f"Error fetching git audit logs: {e}")
             raise
 
-    def trigger_git_release(self, project_name: str, source_branch: str, target_branch: str, author: str, skip_changelog: bool = False, keep_branch: bool = True, debug: bool = True):
+    def trigger_git_release(self, project_name: str, source_branch: str, target_branch: str, author: str, skip_changelog: bool = False, keep_branch: bool = True, debug: bool = True, release_only: bool = False):
         if not self.stub:
             raise Exception("HAU Connector is not connected.")
             
@@ -241,7 +241,8 @@ class HAUConnector:
             skip_changelog_generation=skip_changelog,
             keep_branch=keep_branch,
             debug=debug,
-            author=author
+            author=author,
+            release_only=release_only
         )
         # Returns a generator for the gRPC stream
         return self.stub.GitRelease(req, metadata=self.metadata)

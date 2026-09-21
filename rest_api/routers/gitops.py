@@ -3,7 +3,7 @@ import time
 import uuid
 import json
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks, Depends
-from rest_api.schemas import ReleaseRequest, RetryRequest, DeleteRequest
+from rest_api.schemas import ReleaseRequest, RetryRequest, DeleteRequest, ClearCacheRequest
 from rest_api.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,16 @@ def get_gitops_inventory(request: Request, background_tasks: BackgroundTasks, pr
     except Exception as e:
         logger.error(f"Failed to fetch gitops inventory synchronously: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cache/clear")
+def clear_gitops_cache(request: Request, body: ClearCacheRequest):
+    redis = get_redis_handler(request)
+    if body.project_name:
+        redis.client.delete(f"ham:gitops:inventory:{body.project_name}")
+        redis.client.delete(f"ham:gitops:audit:{body.project_name}")
+    redis.client.delete("ham:gitops:inventory:")
+    redis.client.delete("ham:gitops:releases:all")
+    return {"success": True, "message": "Cache cleared successfully"}
 
 @router.get("/releases")
 def get_all_gitops_releases(request: Request, background_tasks: BackgroundTasks):
@@ -203,7 +213,8 @@ def trigger_release(request: Request, body: ReleaseRequest, background_tasks: Ba
             project_name=body.project_name,
             source_branch=body.source_branch,
             target_branch=body.target_branch,
-            author=actor_name
+            author=actor_name,
+            release_only=body.release_only
         )
         
         # Save task mapping to project

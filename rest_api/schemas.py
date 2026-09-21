@@ -1,10 +1,14 @@
 from pydantic import BaseModel
 
+class ClearCacheRequest(BaseModel):
+    project_name: str
+
 class ReleaseRequest(BaseModel):
     project_name: str
     source_branch: str
     target_branch: str
     author: str
+    release_only: bool = False
 
 class RetryRequest(BaseModel):
     project_name: str
