@@ -124,6 +124,34 @@ export default function ProjectCard({ project }) {
     const latestDevRelease = inventory.pre_releases?.[0]?.tag || inventory.pre_releases?.[0]?.container_tag;
     const latestProdRelease = inventory.releases?.[0]?.tag || inventory.releases?.[0]?.container_tag;
 
+    const devBranch = inventory.core_environments?.find(e => e.branch === 'dev');
+    const prodBranch = inventory.core_environments?.find(e => e.branch === 'main' || e.branch === 'master');
+    
+    const devDisplayVersion = latestDevRelease || (devBranch ? (devBranch.container_tag || devBranch.tag || devBranch.branch) : null);
+    const prodDisplayVersion = latestProdRelease || (prodBranch ? (prodBranch.container_tag || prodBranch.tag || prodBranch.branch) : null);
+
+    const devNeedsRelease = useMemo(() => {
+        if (!devBranch) return false;
+        const lastUpdated = new Date(devBranch.container_created || devBranch.created_at || devBranch.last_updated_at || 0).getTime();
+        const preReleases = inventory.pre_releases || [];
+        let latestReleaseTime = 0;
+        if (preReleases.length > 0) {
+            latestReleaseTime = new Date(preReleases[0].created_at || preReleases[0].container_created || 0).getTime();
+        }
+        return latestReleaseTime === 0 || lastUpdated > latestReleaseTime;
+    }, [devBranch, inventory.pre_releases]);
+
+    const prodNeedsRelease = useMemo(() => {
+        if (!prodBranch) return false;
+        const lastUpdated = new Date(prodBranch.container_created || prodBranch.created_at || prodBranch.last_updated_at || 0).getTime();
+        const releases = inventory.releases || [];
+        let latestReleaseTime = 0;
+        if (releases.length > 0) {
+            latestReleaseTime = new Date(releases[0].created_at || releases[0].container_created || 0).getTime();
+        }
+        return latestReleaseTime === 0 || lastUpdated > latestReleaseTime;
+    }, [prodBranch, inventory.releases]);
+
     return (
         <>
             <Paper 
@@ -150,16 +178,30 @@ export default function ProjectCard({ project }) {
                             {actualPath}
                         </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 'fit-content', ml: 2 }}>
-                        {latestProdRelease && (
-                            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 'bold' }}>
-                                {latestProdRelease}
-                            </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 'fit-content', ml: 2, gap: 0.5 }}>
+                        {(prodDisplayVersion || prodNeedsRelease) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {prodNeedsRelease && (
+                                    <Chip label="pending" size="small" color="success" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                )}
+                                {prodDisplayVersion && (
+                                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'success.main', fontWeight: 'bold' }}>
+                                        {prodDisplayVersion}
+                                    </Typography>
+                                )}
+                            </Box>
                         )}
-                        {latestDevRelease && (
-                            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'warning.main', fontWeight: 'bold' }}>
-                                {latestDevRelease}
-                            </Typography>
+                        {(devDisplayVersion || devNeedsRelease) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {devNeedsRelease && (
+                                    <Chip label="pending" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                )}
+                                {devDisplayVersion && (
+                                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'warning.main', fontWeight: 'bold' }}>
+                                        {devDisplayVersion}
+                                    </Typography>
+                                )}
+                            </Box>
                         )}
                     </Box>
                 </Box>

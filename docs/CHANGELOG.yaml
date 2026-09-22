@@ -15,6 +15,15 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.2
+  date: "2026-09-22"
+  author: "Martin Kecka"
+  changes:
+    - 'category': '🎨 UI / UX Improvements'
+      'items':
+      - 'Added ''pending'' release indicators to Project Cards to visually signal when environment branches have updates that haven''t been released yet.'
+      - 'Improved version display logic in Project Cards to fallback to container tags or branch names when a formal release tag is missing.'
+
 - version: 0.2.1
   date: "2026-09-21"
   author: "Martin Kecka"
