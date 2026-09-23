@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Button, Tabs, Tab, Typography, Divider, Chip, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -9,6 +10,7 @@ import HaloDocAccordion from '../features/documentation/components/HaloDocAccord
 import { docsService } from '../services/docsService';
 
 function DocumentationPage() {
+    const { docName } = useParams();
     const [activeTab, setActiveTab] = useState(0);
 
     const { data: docsConfig, isLoading: isConfigLoading, error: configError } = useQuery({
@@ -28,6 +30,16 @@ function DocumentationPage() {
         queryFn: docsService.fetchHaloDocsTree,
         staleTime: Infinity,
     });
+
+    useEffect(() => {
+        if (!docName) return;
+        
+        if (haloDocsTree && haloDocsTree.some(d => d.filename === docName)) {
+            setActiveTab(0);
+        } else if (docsConfig && docsConfig.some(d => d.id === docName)) {
+            setActiveTab(1);
+        }
+    }, [docName, haloDocsTree, docsConfig]);
 
     const handleDownloadAllChangelogs = () => {
         window.location.href = docsService.getAllChangelogsDownloadUrl();
@@ -61,20 +73,25 @@ function DocumentationPage() {
         if (filteredDocs.length === 0) return null;
 
         if (docTypeFilter === 'archive') {
+            const hasTarget = docName && filteredDocs.some(d => d.filename === docName);
             return (
                 <Box sx={{ mb: 4 }}>
-                    <Accordion sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={false}>
+                    <Accordion sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} defaultExpanded={hasTarget}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="h6" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, color: 'primary.main' }}>{title}</Typography>
                         </AccordionSummary>
                         <AccordionDetails sx={{ p: 2, backgroundColor: 'background.default' }}>
-                            {filteredDocs.map((doc, idx) => (
-                                <HaloDocAccordion 
-                                    key={doc.filename}
-                                    doc={doc}
-                                    defaultExpanded={false}
-                                />
-                            ))}
+                            {filteredDocs.map((doc, idx) => {
+                                const isTargetDoc = docName && doc.filename === docName;
+                                return (
+                                    <HaloDocAccordion 
+                                        key={doc.filename}
+                                        doc={doc}
+                                        defaultExpanded={isTargetDoc}
+                                        isTargetDoc={isTargetDoc}
+                                    />
+                                );
+                            })}
                         </AccordionDetails>
                     </Accordion>
                 </Box>
@@ -91,13 +108,18 @@ function DocumentationPage() {
                         sx={{ fontWeight: 'bold', fontSize: '1.1rem', py: 2, px: 2, textTransform: 'uppercase', letterSpacing: 1 }} 
                     />
                 </Divider>
-                {filteredDocs.map((doc, idx) => (
-                    <HaloDocAccordion 
-                        key={doc.filename}
-                        doc={doc}
-                        defaultExpanded={docTypeFilter === 'ecosystem' && idx === 0}
-                    />
-                ))}
+                {filteredDocs.map((doc, idx) => {
+                    const isTargetDoc = docName && doc.filename === docName;
+                    const isDefaultExpanded = isTargetDoc || (!docName && docTypeFilter === 'ecosystem' && idx === 0);
+                    return (
+                        <HaloDocAccordion 
+                            key={doc.filename}
+                            doc={doc}
+                            defaultExpanded={isDefaultExpanded}
+                            isTargetDoc={isTargetDoc}
+                        />
+                    );
+                })}
             </Box>
         );
     };
@@ -141,14 +163,19 @@ function DocumentationPage() {
                     {configError && (
                         <Alert severity="error" sx={{ mb: 2 }}>Failed to load documentation configuration: {configError.message}</Alert>
                     )}
-                    {docsConfig && docsConfig.map((doc, index) => (
-                        <DocumentationAccordion 
-                            key={doc.id}
-                            title={doc.name} 
-                            docKey={doc.id} 
-                            defaultExpanded={index === 0} 
-                        />
-                    ))}
+                    {docsConfig && docsConfig.map((doc, index) => {
+                        const isTargetDoc = docName && doc.id === docName;
+                        const isDefaultExpanded = isTargetDoc || (!docName && index === 0);
+                        return (
+                            <DocumentationAccordion 
+                                key={doc.id}
+                                title={doc.name} 
+                                docKey={doc.id} 
+                                defaultExpanded={isDefaultExpanded} 
+                                isTargetDoc={isTargetDoc}
+                            />
+                        );
+                    })}
                 </Box>
             )}
 

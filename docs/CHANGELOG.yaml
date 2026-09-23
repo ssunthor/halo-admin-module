@@ -15,6 +15,23 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.3
+  date: "2026-09-23"
+  author: "Martin Kecka"
+  changes:
+    - 'category': '✨ New Features & Enhancements'
+      'items':
+      - 'Implemented manual synchronization for Inventory and GitOps data with real-time progress updates via streaming NDJSON endpoints.'
+      - 'Added support for documentation permalinks, enabling direct navigation to and automatic expansion of specific documents via URL parameters.'
+    - 'category': '🎨 UI / UX Improvements'
+      'items':
+      - 'Added a manual sync trigger button and a progress snackbar to the main application layout.'
+      - 'Implemented automatic scrolling and expansion for targeted documentation sections when accessed via a permalink.'
+    - 'category': '🧹 Refactoring & Chores'
+      'items':
+      - 'Standardized API request paths in `docsService` to use absolute URLs.'
+      - 'Refactored `GitOpsDashboard` rendering logic for improved maintainability.'
+
 - version: 0.2.2
   date: "2026-09-22"
   author: "Martin Kecka"

@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/inventory", tags=["HALO Inventory"])
@@ -30,3 +31,17 @@ def update_customization(request: Request, payload: UpdateCustomizationRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/sync")
+def sync_inventory_endpoint(request: Request):
+    connector = get_hau_connector(request)
+    def stream_generator():
+        try:
+            for item in connector.sync_inventory():
+                import json
+                yield json.dumps(item) + "\n"
+        except Exception as e:
+            import json
+            yield json.dumps({"success": False, "message": str(e)}) + "\n"
+            
+    return StreamingResponse(stream_generator(), media_type="application/x-ndjson")

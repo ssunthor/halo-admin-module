@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
     Box, Typography, CircularProgress, Alert, 
@@ -6,10 +7,41 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DownloadIcon from '@mui/icons-material/Download';
+import LinkIcon from '@mui/icons-material/Link';
 import MarkdownRenderer from '../../../components/common/MarkdownRenderer';
 import { docsService } from '../../../services/docsService';
 
-function DocumentationAccordion({ title, docKey, defaultExpanded = false }) {
+function DocumentationAccordion({ title, docKey, defaultExpanded = false, isTargetDoc = false }) {
+    const accordionRef = useRef(null);
+    const navigate = useNavigate();
+
+    const [expanded, setExpanded] = useState(defaultExpanded);
+
+    useEffect(() => {
+        if (isTargetDoc) {
+            setExpanded(true);
+            if (accordionRef.current) {
+                setTimeout(() => {
+                    accordionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 500);
+            }
+        }
+    }, [isTargetDoc]);
+
+    const handleAccordionChange = (event, isExpanded) => {
+        setExpanded(isExpanded);
+    };
+
+    const handleCopyLink = (e) => {
+        e.stopPropagation();
+        const docUrl = `/docs/${docKey}`;
+        navigate(docUrl);
+        const fullUrl = `${window.location.origin}/app/halo_admin_module${docUrl}`;
+        navigator.clipboard.writeText(fullUrl).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    };
+
     const { data: content, isLoading, error } = useQuery({
         queryKey: ['docContent', docKey],
         queryFn: () => docsService.fetchDocContent(docKey),
@@ -21,11 +53,16 @@ function DocumentationAccordion({ title, docKey, defaultExpanded = false }) {
     };
 
     return (
-        <Accordion sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', mb: 1, borderRadius: 1 }} defaultExpanded={defaultExpanded}>
+        <Accordion ref={accordionRef} expanded={expanded} onChange={handleAccordionChange} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', mb: 1, borderRadius: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', pr: 2 }}>
                     <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>{title}</Typography>
                     {isLoading && <CircularProgress size={20} sx={{ mr: 2 }} />}
+                    <Tooltip title="Copy Permalink">
+                        <IconButton size="small" onClick={handleCopyLink} sx={{ mr: 1 }}>
+                            <LinkIcon />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title="Download Document">
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
                             <DownloadIcon />

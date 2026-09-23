@@ -3,6 +3,7 @@ import time
 import uuid
 import json
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks, Depends
+from fastapi.responses import StreamingResponse
 from rest_api.schemas import ReleaseRequest, RetryRequest, DeleteRequest, ClearCacheRequest
 from rest_api.dependencies import get_current_user
 
@@ -67,6 +68,20 @@ def clear_gitops_cache(request: Request, body: ClearCacheRequest):
     redis.client.delete("ham:gitops:inventory:")
     redis.client.delete("ham:gitops:releases:all")
     return {"success": True, "message": "Cache cleared successfully"}
+
+@router.post("/sync")
+def sync_gitops_endpoint(request: Request):
+    connector = get_hau_connector(request)
+    def stream_generator():
+        try:
+            for item in connector.sync_git_inventory():
+                import json
+                yield json.dumps(item) + "\n"
+        except Exception as e:
+            import json
+            yield json.dumps({"success": False, "message": str(e)}) + "\n"
+            
+    return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
 
 @router.get("/releases")
 def get_all_gitops_releases(request: Request, background_tasks: BackgroundTasks):

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Tabs, Tab, Tooltip, IconButton, CircularProgress, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { Box, AppBar, Toolbar, Typography, Tabs, Tab, Tooltip, IconButton, CircularProgress, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar } from '@mui/material';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import PaletteIcon from '@mui/icons-material/Palette';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SyncIcon from '@mui/icons-material/Sync';
 import ThemeContext from './ThemeContext.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import GitOpsPage from './pages/GitOpsPage.jsx';
@@ -62,6 +63,67 @@ function MainLayout() {
         queryFn: fetchUser,
         staleTime: Infinity,
     });
+    
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncProgress, setSyncProgress] = useState('');
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const queryClientForSync = useQueryClient();
+
+    const handleManualSync = async () => {
+        setIsSyncing(true);
+        setSnackbarOpen(true);
+        setSyncProgress('Starting synchronization process...');
+        
+        try {
+            // Inventory Sync Stream
+            const invResponse = await fetch('/api/inventory/sync', { method: 'POST' });
+            if (invResponse.ok) {
+                const reader = invResponse.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n').filter(l => l.trim());
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.message) setSyncProgress(data.message);
+                        } catch (e) {}
+                    }
+                }
+            }
+            
+            // GitOps Sync Stream
+            const gitResponse = await fetch('/api/gitops/sync', { method: 'POST' });
+            if (gitResponse.ok) {
+                const reader = gitResponse.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n').filter(l => l.trim());
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.message) setSyncProgress(data.message);
+                        } catch (e) {}
+                    }
+                }
+            }
+            
+            setSyncProgress('Sync Process Completed Successfully.');
+            setTimeout(() => setSnackbarOpen(false), 3000);
+            queryClientForSync.invalidateQueries();
+        } catch (e) {
+            console.error('Failed to sync', e);
+            setSyncProgress(`Error during sync: ${e.message}`);
+            setTimeout(() => setSnackbarOpen(false), 5000);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const [anchorEl, setAnchorEl] = useState(null);
     const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
@@ -195,6 +257,13 @@ function MainLayout() {
                                 Welcome, <Box component="span" sx={{ color: 'primary.main', fontWeight: 'bold' }}>{user?.display_name || 'Guest'}</Box>
                             </Typography>
                         )}
+                        
+
+                        <Tooltip title="Manual Sync (Inventory then GitOps)">
+                            <IconButton onClick={handleManualSync} color="inherit" disabled={isSyncing} sx={{ ml: 1, mr: 1 }}>
+                                {isSyncing ? <CircularProgress size={24} color="inherit" /> : <SyncIcon />}
+                            </IconButton>
+                        </Tooltip>
 
                         <Tooltip title="Select Theme">
                             <IconButton onClick={handleMenuOpen} color="inherit" sx={{ ml: 1, mr: 1 }}>
@@ -246,9 +315,35 @@ function MainLayout() {
                         <Route path="/releases" element={<ReleasesPage />} />
                         <Route path="/configuration" element={<ConfigurationPage />} />
                         <Route path="/docs" element={<DocumentationPage />} />
-                        <Route path="/docs/:acronym" element={<ChangelogViewer />} />
+                        <Route path="/docs/:docName" element={<DocumentationPage />} />
                     </Routes>
                 </Box>
+                
+                <Snackbar
+                    open={snackbarOpen}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                    ContentProps={{
+                        sx: {
+                            bgcolor: 'background.paper',
+                            color: 'text.primary',
+                            border: '1px solid',
+                            borderColor: 'primary.dark',
+                            borderRadius: 2,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: 'auto',
+                            px: 3,
+                        }
+                    }}
+                    message={
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {isSyncing && <CircularProgress size={16} color="primary" />}
+                            {syncProgress}
+                        </Typography>
+                    }
+                />
             </Box>
         </Router>
     );

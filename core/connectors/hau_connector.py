@@ -138,10 +138,25 @@ class HAUConnector:
             
         req = self.hau_pb2.GitInventorySyncRequest(project_name=project_name)
         try:
-            resp = self.stub.GitInventorySync(req, metadata=self.metadata, timeout=120)
-            return {"success": resp.success, "message": resp.message}
+            # GitInventorySync returns a stream, we iterate to consume it
+            responses = self.stub.GitInventorySync(req, metadata=self.metadata, timeout=120)
+            for resp in responses:
+                yield {"success": resp.success, "message": resp.message}
         except Exception as e:
             logger.error(f"Error syncing git inventory: {e}")
+            raise
+
+    def sync_inventory(self) -> dict:
+        if not self.stub:
+            raise Exception("HAU Connector is not connected.")
+            
+        req = self.hau_pb2.InventorySyncRequest()
+        try:
+            responses = self.stub.InventorySync(req, metadata=self.metadata, timeout=120)
+            for resp in responses:
+                yield {"success": resp.success, "message": resp.message}
+        except Exception as e:
+            logger.error(f"Error syncing inventory: {e}")
             raise
 
     def get_git_inventory(self, project_name: str = "") -> dict:

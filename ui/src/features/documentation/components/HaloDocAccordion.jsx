@@ -1,16 +1,47 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
     Box, Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Stack,
     IconButton, Tooltip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DownloadIcon from '@mui/icons-material/Download';
+import LinkIcon from '@mui/icons-material/Link';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import MarkdownRenderer from '../../../components/common/MarkdownRenderer';
 
-function HaloDocAccordion({ doc, defaultExpanded = false }) {
+function HaloDocAccordion({ doc, defaultExpanded = false, isTargetDoc = false }) {
     const title = doc.name || doc.filename;
     const contentRef = useRef(null);
+    const accordionRef = useRef(null);
+    const navigate = useNavigate();
+
+    const [expanded, setExpanded] = useState(defaultExpanded);
+
+    useEffect(() => {
+        if (isTargetDoc) {
+            setExpanded(true);
+            if (accordionRef.current) {
+                setTimeout(() => {
+                    accordionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 500);
+            }
+        }
+    }, [isTargetDoc]);
+
+    const handleAccordionChange = (event, isExpanded) => {
+        setExpanded(isExpanded);
+    };
+
+    const handleCopyLink = (e) => {
+        e.stopPropagation();
+        const docUrl = `/docs/${doc.filename}`;
+        navigate(docUrl);
+        const fullUrl = `${window.location.origin}/app/halo_admin_module${docUrl}`;
+        navigator.clipboard.writeText(fullUrl).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    };
     
     // Strip metadata lines from the top of the markdown
     const strippedMarkdown = (doc.raw_markdown || "").split('\n')
@@ -117,7 +148,7 @@ function HaloDocAccordion({ doc, defaultExpanded = false }) {
                 </html>
             `;
 
-            const response = await fetch('api/docs/export-pdf', {
+            const response = await fetch('/api/docs/export-pdf', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -147,7 +178,7 @@ function HaloDocAccordion({ doc, defaultExpanded = false }) {
     };
 
     return (
-        <Accordion sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', mb: 1, borderRadius: 1 }} defaultExpanded={defaultExpanded}>
+        <Accordion ref={accordionRef} expanded={expanded} onChange={handleAccordionChange} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', mb: 1, borderRadius: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 2, pr: 1 }}>
                     
@@ -203,6 +234,11 @@ function HaloDocAccordion({ doc, defaultExpanded = false }) {
                                 }} 
                             />
                         )}
+                        <Tooltip title="Copy Permalink">
+                            <IconButton onClick={handleCopyLink} sx={{ color: 'text.secondary' }}>
+                                <LinkIcon />
+                            </IconButton>
+                        </Tooltip>
                         <Tooltip title="Download Markdown">
                             <IconButton onClick={handleDownloadMD} sx={{ color: 'text.secondary' }}>
                                 <DownloadIcon />
