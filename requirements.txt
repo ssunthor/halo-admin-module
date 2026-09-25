@@ -8,8 +8,8 @@ PyYAML
 requests
 
 # --- gRPC Dependencies ---
-grpcio
-grpcio-tools
+grpcio==1.84.0
+grpcio-tools==1.84.0
 googleapis-common-protos
 
 redis>=5.0.0

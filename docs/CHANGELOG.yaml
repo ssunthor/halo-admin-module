@@ -15,6 +15,26 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.4
+  date: "2026-09-25"
+  author: "Martin Kecka"
+  changes:
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Implemented a stale-while-revalidate Redis caching strategy for the repository topology, enabling instant UI rendering with background polling to HRU."
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Implemented the `Repository` tab to act as a direct consumer of the Halo Repository Utility (HRU) gRPC service."
+        - "Added a dedicated `hru_connector.py` client and REST API proxy routes in `repository.py`."
+        - "Added multi-dimensional filtering to the repository dashboard, allowing dynamic search across Tenant, Device Name, Site Code, Status, IP mapping, and Configuration states."
+        - "Introduced client-side column sorting and component pagination restricted to 250 rows to heavily optimize DOM rendering performance."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Deployed a unified, flat `RepositoryDashboard` layout containing all repository devices for high-density visibility."
+        - "Designed a compact grid layout for the `DeviceDetailsDialog`, aligning with standard ecosystem aesthetic guidelines."
+        - "Integrated interactive JSON tooltips within the dialog to expose raw CMD Audit Data (Segment and GNID parameters)."
+        - "Added conditional status chips highlighting missing IPs, missing configurations, and failed CMD audits."
+
 - version: 0.2.3
   date: "2026-09-23"
   author: "Martin Kecka"

@@ -13,11 +13,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from utils.config_loader import load_config
 from utils.logging_setup import get_logging_config
 from core.connectors.hau_connector import HAUConnector
+from core.connectors.hru_connector import HRUConnector
 
 from core.database.database import get_engine, get_session_factory, init_db
 from core.io_handlers.redis_handler import RedisHandler
 
-from rest_api.routers import inventory, users, docs, gitops, configuration
+from rest_api.routers import inventory, users, docs, gitops, configuration, repository
 import random
 
 config = load_config()
@@ -77,6 +78,7 @@ async def lifespan(app: FastAPI):
         app.state.redis_handler = RedisHandler(redis_url)
         
         app.state.hau_connector = HAUConnector(config)
+        app.state.hru_connector = HRUConnector(config)
         
         db_dsn = config.get('database', {}).get('write_dsn')
         engine = get_engine(db_dsn)
@@ -118,6 +120,7 @@ app.include_router(users.router)
 app.include_router(docs.router)
 app.include_router(gitops.router)
 app.include_router(configuration.router)
+app.include_router(repository.router)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))

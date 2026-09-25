@@ -1,6 +1,6 @@
 module_info:
   name: "Halo Admin Module"
-  version: "0.2.3"
+  version: "0.2.4"
   acronym: "HAM"
   category: "Admin"
   description: "Centralized platform for managing the HALO ecosystem."
@@ -35,11 +35,16 @@ connectors:
     host: "localhost"
     port: 50121
     timeout_seconds: 30
+  hru:
+    host: "localhost"
+    port: 50122
+    timeout_seconds: 60
 
 paths:
   shared_assets_path: "/ai/assets"
   generated_stubs_path: "/ai/assets/protos/halo_admin_module/generated"
   hau_stubs_path: "/ai/assets/protos/halo_admin_utility/generated"
+  hru_stubs_path: "/ai/assets/protos/halo_repository_utility/generated"
   sera_stubs_path: "/ai/assets/protos/sera_standard/generated"
   docs_base_path: "/ai/assets/guides"
 

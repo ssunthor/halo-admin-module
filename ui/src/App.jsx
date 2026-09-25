@@ -11,6 +11,7 @@ import GitOpsPage from './pages/GitOpsPage.jsx';
 import ReleasesPage from './pages/ReleasesPage.jsx';
 import DocumentationPage from './pages/DocumentationPage.jsx';
 import ConfigurationPage from './pages/ConfigurationPage.jsx';
+import RepositoryPage from './pages/RepositoryPage.jsx';
 import ChangelogViewer from './features/documentation/components/ChangelogViewer.jsx';
 import { docsService } from './services/docsService.js';
 
@@ -36,6 +37,7 @@ function NavigationTabs() {
     if (location.pathname.startsWith('/gitops')) currentTab = '/gitops';
     if (location.pathname.startsWith('/releases')) currentTab = '/releases';
     if (location.pathname.startsWith('/configuration')) currentTab = '/configuration';
+    if (location.pathname.startsWith('/repository')) currentTab = '/repository';
     
     return (
         <Tabs 
@@ -51,6 +53,7 @@ function NavigationTabs() {
             <Tab label="GitOps" value="/gitops" to="/gitops" component={NavLink} />
             <Tab label="Releases" value="/releases" to="/releases" component={NavLink} />
             <Tab label="Configuration" value="/configuration" to="/configuration" component={NavLink} />
+            <Tab label="Repository" value="/repository" to="/repository" component={NavLink} />
             <Tab label="Documentation" value="/docs" to="/docs" component={NavLink} />
         </Tabs>
     );
@@ -314,6 +317,7 @@ function MainLayout() {
                         <Route path="/gitops" element={<GitOpsPage />} />
                         <Route path="/releases" element={<ReleasesPage />} />
                         <Route path="/configuration" element={<ConfigurationPage />} />
+                        <Route path="/repository" element={<RepositoryPage />} />
                         <Route path="/docs" element={<DocumentationPage />} />
                         <Route path="/docs/:docName" element={<DocumentationPage />} />
                     </Routes>
