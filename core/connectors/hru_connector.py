@@ -44,7 +44,7 @@ class HRUConnector:
                 return None
         return self._stub
 
-    def get_tenant_topology(self, tenant_acronym: str = "", expand_devices: bool = True) -> list:
+    def get_tenant_topology(self, tenant_acronym: str = "", expand_devices: bool = True, limit: int = 0, offset: int = 0, omit_devices: bool = False) -> list:
         stub = self._get_stub()
         if not stub:
             return []
@@ -52,7 +52,10 @@ class HRUConnector:
         try:
             req = self.hru_pb2.TenantTopologyRequest(
                 tenant_acronym=tenant_acronym,
-                expand_devices=expand_devices
+                expand_devices=expand_devices,
+                limit=limit,
+                offset=offset,
+                omit_devices=omit_devices
             )
             response = stub.GetTenantTopology(req)
             if response.success:
@@ -62,6 +65,27 @@ class HRUConnector:
                 return []
         except grpc.RpcError as e:
             logger.error(f"gRPC call failed for GetTenantTopology: {e}")
+            return []
+
+    def get_tenant_configs(self, tenant_acronym: str = "", limit: int = 0, offset: int = 0) -> list:
+        stub = self._get_stub()
+        if not stub:
+            return []
+            
+        try:
+            req = self.hru_pb2.TenantConfigsRequest(
+                tenant_acronym=tenant_acronym,
+                limit=limit,
+                offset=offset
+            )
+            response = stub.GetTenantConfigs(req)
+            if response.success:
+                return json.loads(response.result_json) if response.result_json else []
+            else:
+                logger.error(f"HRU GetTenantConfigs returned error: {response.message}")
+                return []
+        except grpc.RpcError as e:
+            logger.error(f"gRPC call failed for GetTenantConfigs: {e}")
             return []
 
     def sync_tenant(self, tenant_acronym: str) -> Generator[Dict[str, Any], None, None]:

@@ -80,11 +80,29 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
         enabled: !!deviceName,
     });
 
+    const netboxUrl = device ? (device.netbox_type === 'virtual_machine' 
+        ? `https://netbox.gt-t.net/virtualization/virtual-machines/${device.netbox_id}/` 
+        : `https://netbox.gt-t.net/dcim/devices/${device.netbox_id}/`) 
+        : '#';
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper' } }}>
             <DialogTitle sx={{ bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', pb: 2, pt: 3, px: 4 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h5" fontWeight="bold">Device Details: {deviceName}</Typography>
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                        <Typography variant="h5" fontWeight="bold">Device Details: {deviceName}</Typography>
+                        {device && device.netbox_id && (
+                            <Tooltip title="View in Netbox" arrow>
+                                <a href={netboxUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', color: '#90caf9', textDecoration: 'none' }}>
+                                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </Tooltip>
+                        )}
+                    </Box>
                     {device && (
                         <Chip 
                             label={device.status} 
@@ -107,6 +125,7 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
                 {device && !isLoading && !isError && (
                     <Grid container spacing={2}>
                         <SectionCard title="General Info">
+                            <DetailRow label="Netbox ID" value={device.netbox_id} />
                             <DetailRow label="Type" value={device.netbox_type} />
                             <DetailRow label="Role" value={device.role} />
                             <DetailRow label="Tenant Acronym" value={device.tenant_info?.acronym} />

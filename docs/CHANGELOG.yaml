@@ -15,6 +15,17 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.5
+  date: "2026-09-25"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Created the foundational External API framework (`/api/external`), complete with a dedicated Swagger UI at `/api/ham/docs` and an independent `openapi.json` definition."
+        - "Implemented the `/external/tenants` endpoint to provide a lightweight index of all tenants, and `/external/tenants/{acronym}` with an `expand=True` parameter to fetch full, paginated device topologies."
+        - "Added the `/external/config` and `/external/config/{acronym}` endpoints utilizing the new HRU `GetTenantConfigs` proxy to serve config histories and backup statistics instantly without loading heavy device metadata."
+        - "Built an intelligent file delivery system via `/external/download/{hash}` that securely serves textual (`.conf`, `.xml`) and Base64-encoded binary (`.tgz`) configuration files using a Redis-backed 7-day TTL map, completely obfuscating internal file paths."
+
 - version: 0.2.4
   date: "2026-09-25"
   author: "Martin Kecka"

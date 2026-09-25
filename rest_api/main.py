@@ -18,7 +18,7 @@ from core.connectors.hru_connector import HRUConnector
 from core.database.database import get_engine, get_session_factory, init_db
 from core.io_handlers.redis_handler import RedisHandler
 
-from rest_api.routers import inventory, users, docs, gitops, configuration, repository
+from rest_api.routers import inventory, users, docs, gitops, configuration, repository, external
 import random
 
 config = load_config()
@@ -121,6 +121,7 @@ app.include_router(docs.router)
 app.include_router(gitops.router)
 app.include_router(configuration.router)
 app.include_router(repository.router)
+app.include_router(external.router, prefix="/api", tags=["External API"])
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
