@@ -53,7 +53,7 @@ export default function ProjectCard({ project }) {
         
         const checkContainers = (list) => {
             (list || []).forEach(c => {
-                const name = c.branch || c.tag || c.container_tag || 'unknown';
+                const name = c.tag || c.container_tag || c.branch || 'unknown';
                 const inUse = c.active_deployments > 0;
                 if (inUse) {
                     let existing = chips.find(chip => chip.name === name);

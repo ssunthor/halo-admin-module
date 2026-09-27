@@ -136,7 +136,9 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
                         <SectionCard title="Location & Network">
                             <DetailRow label="Site" value={device.site?.name} />
                             <DetailRow label="Site Code" value={device.site?.code} />
+                            <DetailRow label="Country" value={device.site?.country || device.country} />
                             <DetailRow label="Facility" value={device.site?.facility} />
+                            <DetailRow label="CMD Fac ID" value={device.site?.cmd_fac_id} />
                             <DetailRow label="Category" value={device.site?.category} />
                             <DetailRow label="Address" value={device.site?.physical_address} />
                             <DetailRow label="Coordinates" value={(device.site?.latitude && device.site?.longitude) ? `${device.site.latitude}, ${device.site.longitude}` : null} />
@@ -167,7 +169,6 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
                             <DetailRow label="Address Match" value={device.audit?.is_address_match ? 'True' : (device.audit?.is_address_match === false ? 'False' : null)} />
                             <DetailRow label="CMD SLID" value={device.cmd?.slid} />
                             <DetailRow label="CMD GNID" value={device.cmd?.gnid} />
-                            <DetailRow label="CMD Fac ID" value={device.site?.cmd_fac_id} />
                             <DetailRow label="Audit Updated" value={device.audit?.updated_at} />
                         </SectionCard>
 

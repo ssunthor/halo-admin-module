@@ -3,6 +3,7 @@ import logging
 import grpc
 from typing import Dict, Any, Generator, Optional
 import json
+from google.protobuf.json_format import MessageToDict
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class HRUConnector:
             )
             response = stub.GetTenantTopology(req)
             if response.success:
-                return json.loads(response.result_json) if response.result_json else []
+                return [MessageToDict(t, preserving_proto_field_name=True) for t in response.result]
             else:
                 logger.error(f"HRU GetTenantTopology returned error: {response.message}")
                 return []
@@ -115,7 +116,7 @@ class HRUConnector:
             req = self.hru_pb2.NetboxDeviceRequest(device_name=device_name)
             response = stub.NetboxDevice(req)
             if response.success:
-                return json.loads(response.result_json) if response.result_json else {}
+                return MessageToDict(response.result, preserving_proto_field_name=True)
             return {}
         except grpc.RpcError as e:
             logger.error(f"gRPC call failed for NetboxDevice: {e}")

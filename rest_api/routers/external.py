@@ -5,7 +5,13 @@ from fastapi.responses import JSONResponse, FileResponse
 import urllib.parse
 import os
 import base64
-
+from typing import Union
+from rest_api.schemas import (
+    TenantTopologyResponseSchema, 
+    SingleTenantTopologyResponseSchema,
+    LightweightTenantTopologyResponseSchema,
+    SingleLightweightTenantTopologyResponseSchema
+)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -57,7 +63,7 @@ async def get_openapi_json(request: Request):
     
     return JSONResponse(filtered_schema)
 
-@router.get("/external/tenants")
+@router.get("/external/tenants", responses={200: {"model": LightweightTenantTopologyResponseSchema}})
 def external_tenants(
     request: Request
 ):
@@ -74,15 +80,15 @@ def external_tenants(
             t["tenant_url"] = f"{base_url}/tenants/{t['slug']}?expand=True"
             t["config_url"] = f"{base_url}/config/{t['slug']}"
             
-        return {
-            "success": True,
-            "data": data
-        }
+        return LightweightTenantTopologyResponseSchema(
+            success=True,
+            data=data
+        )
     except Exception as e:
         logger.error(f"Failed to fetch external tenants: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/external/tenants/{acronym}")
+@router.get("/external/tenants/{acronym}", responses={200: {"model": Union[SingleTenantTopologyResponseSchema, SingleLightweightTenantTopologyResponseSchema]}})
 def external_tenant_details(
     request: Request,
     acronym: str,
@@ -128,10 +134,15 @@ def external_tenant_details(
                 "next_page_url": f"{base_url}/tenants/{acronym}?expand={expand}&limit={limit}&offset={offset+limit}" if offset + limit < total_devices else None
             }
 
-        return {
-            "success": True,
-            "data": tenant_data
-        }
+        if expand:
+            return SingleTenantTopologyResponseSchema(
+                success=True,
+                data=tenant_data
+            )
+        return SingleLightweightTenantTopologyResponseSchema(
+            success=True,
+            data=tenant_data
+        )
     except HTTPException:
         raise
     except Exception as e:

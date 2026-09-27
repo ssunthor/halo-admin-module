@@ -15,6 +15,23 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.6
+  date: "2026-09-27"
+  author: "Martin Kecka"
+  changes:
+    - category: "🚀 Architecture & Infrastructure"
+      items:
+        - "Migrated HRU gRPC connector to handle strictly typed Protobuf messages (`Device` and `TenantTopology`) instead of opaque JSON strings."
+        - "Refactored `hru_connector.py` to seamlessly convert protobuf payloads back to dictionaries using `google.protobuf.json_format.MessageToDict` to protect downstream mutation flows."
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Introduced strictly-typed Pydantic schemas (`DeviceSchema`, `TenantTopologySchema`) to the HAM REST API for 100% Swagger (OpenAPI) validation on external endpoints."
+        - "Refactored REST API routers to utilize conditional schema evaluation (`expand=True/False`), dynamically routing payloads through `LightweightTenantTopologySchema` to trim null values on UI queries."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Added multi-select Country filtering to the Repository Dashboard."
+        - "Updated the Repository Table and Device Details Dialog to natively render the mapped Country and properly positioned the CMD Fac ID."
+
 - version: 0.2.5
   date: "2026-09-25"
   author: "Martin Kecka"

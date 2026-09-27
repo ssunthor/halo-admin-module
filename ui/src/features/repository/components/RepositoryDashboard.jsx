@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Typography, Chip, CircularProgress, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, InputAdornment, Grid, MenuItem, TablePagination, TableSortLabel } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, InputAdornment, Grid, MenuItem, TablePagination, TableSortLabel, Checkbox } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import SearchIcon from '@mui/icons-material/Search';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -54,8 +54,9 @@ export default function RepositoryDashboard() {
     const [filterAcronym, setFilterAcronym] = useState('');
     const [filterDevice, setFilterDevice] = useState('');
     const [filterSite, setFilterSite] = useState('');
+    const [filterCountry, setFilterCountry] = useState([]);
     
-    const [filterStatus, setFilterStatus] = useState('');
+    const [filterStatus, setFilterStatus] = useState([]);
     const [filterIP, setFilterIP] = useState('');
     const [filterConfig, setFilterConfig] = useState('');
     const [filterIssues, setFilterIssues] = useState('');
@@ -68,7 +69,7 @@ export default function RepositoryDashboard() {
     // Reset pagination when filters change
     React.useEffect(() => {
         setPage(0);
-    }, [filterAcronym, filterDevice, filterSite, filterStatus, filterIP, filterConfig, filterIssues]);
+    }, [filterAcronym, filterDevice, filterSite, filterCountry, filterStatus, filterIP, filterConfig, filterIssues]);
 
     const allDevices = useMemo(() => {
         if (!tenants) return [];
@@ -88,13 +89,22 @@ export default function RepositoryDashboard() {
         return Array.from(statuses).sort();
     }, [allDevices]);
 
+    const uniqueCountries = useMemo(() => {
+        const countries = new Set();
+        allDevices.forEach(d => {
+            if (d.country) countries.add(d.country);
+        });
+        return Array.from(countries).sort();
+    }, [allDevices]);
+
     const filteredDevices = useMemo(() => {
         let result = allDevices.filter(dev => {
             const matchAcronym = filterAcronym === '' || dev.tenant_acronym === filterAcronym;
             const matchDevice = filterDevice === '' || (dev.name && dev.name.toLowerCase().includes(filterDevice.toLowerCase()));
             const matchSite = filterSite === '' || (dev.site_code && dev.site_code.toLowerCase().includes(filterSite.toLowerCase()));
+            const matchCountry = filterCountry.length === 0 || filterCountry.includes(dev.country);
             
-            const matchStatus = filterStatus === '' || dev.status === filterStatus;
+            const matchStatus = filterStatus.length === 0 || filterStatus.includes(dev.status);
             const matchIP = filterIP === '' || (filterIP === 'yes' ? dev.has_ip : !dev.has_ip);
             const matchConfig = filterConfig === '' || (filterConfig === 'yes' ? dev.has_config : !dev.has_config);
             
@@ -102,7 +112,7 @@ export default function RepositoryDashboard() {
             const hasIssues = issues.length > 0;
             const matchIssues = filterIssues === '' || (filterIssues === 'yes' ? hasIssues : !hasIssues);
             
-            return matchAcronym && matchDevice && matchSite && matchStatus && matchIP && matchConfig && matchIssues;
+            return matchAcronym && matchDevice && matchSite && matchCountry && matchStatus && matchIP && matchConfig && matchIssues;
         });
         
         result.sort((a, b) => {
@@ -123,7 +133,7 @@ export default function RepositoryDashboard() {
         });
 
         return result;
-    }, [allDevices, filterAcronym, filterDevice, filterSite, filterStatus, filterIP, filterConfig, filterIssues, sortConfig]);
+    }, [allDevices, filterAcronym, filterDevice, filterSite, filterCountry, filterStatus, filterIP, filterConfig, filterIssues, sortConfig]);
 
     if (isLoading) {
         return <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>;
@@ -145,7 +155,7 @@ export default function RepositoryDashboard() {
         <Box sx={{ p: 2 }}>
             <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2, borderColor: 'divider', bgcolor: 'background.default' }}>
                 <Grid container spacing={2}>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
                         <TextField
                             select
                             fullWidth
@@ -162,7 +172,7 @@ export default function RepositoryDashboard() {
                             ))}
                         </TextField>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
                         <TextField
                             fullWidth
                             size="small"
@@ -186,11 +196,73 @@ export default function RepositoryDashboard() {
                             }}
                         />
                     </Grid>
+                    <Grid item xs={12} md={2}>
+                        <TextField 
+                            select 
+                            fullWidth 
+                            size="small" 
+                            label="Country" 
+                            value={filterCountry} 
+                            onChange={(e) => {
+                                const { value } = e.target;
+                                setFilterCountry(typeof value === 'string' ? value.split(',') : value);
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                            SelectProps={{
+                                multiple: true,
+                                renderValue: (selected) => {
+                                    if (selected.length === 0) return <em>All</em>;
+                                    if (selected.length === 1) return selected[0];
+                                    return `${selected.length} Selected`;
+                                },
+                                displayEmpty: true,
+                                MenuProps: {
+                                    PaperProps: { sx: { maxWidth: 350 } },
+                                    MenuListProps: { sx: { display: 'flex', flexWrap: 'wrap' } }
+                                }
+                            }}
+                        >
+                            <MenuItem disabled value="" sx={{ display: 'none' }}>
+                                <em>All</em>
+                            </MenuItem>
+                            {uniqueCountries.map(c => (
+                                <MenuItem key={c} value={c} sx={{ px: 1, width: '25%' }}>
+                                    <Checkbox checked={filterCountry.indexOf(c) > -1} size="small" sx={{ p: 0.5, mr: 0.5 }} />
+                                    {c}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Grid>
                     <Grid item xs={12} md={1}>
-                        <TextField select fullWidth size="small" label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                            <MenuItem value=""><em>All</em></MenuItem>
+                        <TextField 
+                            select 
+                            fullWidth 
+                            size="small" 
+                            label="Status" 
+                            value={filterStatus} 
+                            onChange={(e) => {
+                                const { value } = e.target;
+                                setFilterStatus(typeof value === 'string' ? value.split(',') : value);
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                            SelectProps={{
+                                multiple: true,
+                                renderValue: (selected) => {
+                                    if (selected.length === 0) return <em>All</em>;
+                                    if (selected.length === 1) return selected[0].charAt(0).toUpperCase() + selected[0].slice(1);
+                                    return `${selected.length} Selected`;
+                                },
+                                displayEmpty: true
+                            }}
+                        >
+                            <MenuItem disabled value="" sx={{ display: 'none' }}>
+                                <em>All</em>
+                            </MenuItem>
                             {uniqueStatuses.map(s => (
-                                <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>
+                                <MenuItem key={s} value={s} sx={{ px: 1 }}>
+                                    <Checkbox checked={filterStatus.indexOf(s) > -1} size="small" sx={{ p: 0.5, mr: 0.5 }} />
+                                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                                </MenuItem>
                             ))}
                         </TextField>
                     </Grid>
@@ -253,6 +325,11 @@ export default function RepositoryDashboard() {
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
+                                <TableSortLabel active={sortConfig.key === 'country'} direction={sortConfig.direction} onClick={() => handleSort('country')}>
+                                    Country
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
                                 <TableSortLabel active={sortConfig.key === 'site_code'} direction={sortConfig.direction} onClick={() => handleSort('site_code')}>
                                     Site Code
                                 </TableSortLabel>
@@ -283,6 +360,7 @@ export default function RepositoryDashboard() {
                                     <TableCell>
                                         <StyledChip label={dev.has_config ? 'Backed Up' : 'Missing'} color={dev.has_config ? 'success' : 'warning'} />
                                     </TableCell>
+                                    <TableCell sx={{ fontWeight: 500 }}>{dev.country || 'UNK'}</TableCell>
                                     <TableCell sx={{ fontWeight: 500 }}>{dev.site_code || '-'}</TableCell>
                                     <TableCell>
                                         {issues.length > 0 ? (
@@ -305,7 +383,7 @@ export default function RepositoryDashboard() {
                         })}
                         {filteredDevices.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 3 }}>No devices found matching your filters.</TableCell>
+                                <TableCell colSpan={9} align="center" sx={{ py: 3 }}>No devices found matching your filters.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
