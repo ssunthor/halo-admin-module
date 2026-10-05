@@ -45,6 +45,35 @@ class HRUConnector:
                 return None
         return self._stub
 
+    def _clean_device_json_fields(self, device: dict):
+        if "tenant_info" in device:
+            ti = device["tenant_info"]
+            if "custom_fields_json" in ti:
+                if ti["custom_fields_json"]:
+                    try:
+                        ti["custom_fields"] = json.loads(ti["custom_fields_json"])
+                    except Exception:
+                        pass
+                del ti["custom_fields_json"]
+                
+        if "audit" in device:
+            ad = device["audit"]
+            if "segment_data_json" in ad:
+                if ad["segment_data_json"]:
+                    try:
+                        ad["segment_data"] = json.loads(ad["segment_data_json"])
+                    except Exception:
+                        pass
+                del ad["segment_data_json"]
+                
+            if "gnid_data_json" in ad:
+                if ad["gnid_data_json"]:
+                    try:
+                        ad["gnid_data"] = json.loads(ad["gnid_data_json"])
+                    except Exception:
+                        pass
+                del ad["gnid_data_json"]
+
     def get_tenant_topology(self, tenant_acronym: str = "", expand_devices: bool = True, limit: int = 0, offset: int = 0, omit_devices: bool = False) -> list:
         stub = self._get_stub()
         if not stub:
@@ -60,7 +89,13 @@ class HRUConnector:
             )
             response = stub.GetTenantTopology(req)
             if response.success:
-                return [MessageToDict(t, preserving_proto_field_name=True) for t in response.result]
+                results = []
+                for t in response.result:
+                    data = MessageToDict(t, preserving_proto_field_name=True)
+                    for device in data.get("devices", []):
+                        self._clean_device_json_fields(device)
+                    results.append(data)
+                return results
             else:
                 logger.error(f"HRU GetTenantTopology returned error: {response.message}")
                 return []
@@ -116,7 +151,9 @@ class HRUConnector:
             req = self.hru_pb2.NetboxDeviceRequest(device_name=device_name)
             response = stub.NetboxDevice(req)
             if response.success:
-                return MessageToDict(response.result, preserving_proto_field_name=True)
+                data = MessageToDict(response.result, preserving_proto_field_name=True)
+                self._clean_device_json_fields(data)
+                return data
             return {}
         except grpc.RpcError as e:
             logger.error(f"gRPC call failed for NetboxDevice: {e}")

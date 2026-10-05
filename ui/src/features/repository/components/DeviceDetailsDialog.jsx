@@ -206,10 +206,11 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
                             </SectionCard>
                         )}
 
-                        <SectionCard title="Configuration & Metadata" fullWidth={true}>
-                            <DetailRow label="Config File" value={device.config?.filename} />
-                            <DetailRow label="Created At" value={device.created_at} />
-                            <DetailRow label="Updated At" value={device.updated_at} />
+                        <SectionCard title="Configuration & Device Metadata" fullWidth={true}>
+                            <DetailRow label="Active Config File" value={device.config?.filename} />
+                            <DetailRow label="Latest Backup Sync" value={device.config?.history?.length > 0 ? device.config.history[0].created_at : null} />
+                            <DetailRow label="Netbox Record Created" value={device.netbox_created_at} />
+                            <DetailRow label="Netbox Record Updated" value={device.netbox_updated_at} />
                         </SectionCard>
                         
                         {(device.config?.history?.length > 0) && (

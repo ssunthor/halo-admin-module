@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 class ClearCacheRequest(BaseModel):
     project_name: str
@@ -68,8 +68,8 @@ class AuditDataSchema(BaseModel):
     is_client_match: Optional[bool] = None
     is_address_match: Optional[bool] = None
     segment_id: Optional[int] = None
-    segment_data_json: Optional[str] = None
-    gnid_data_json: Optional[str] = None
+    segment_data: Optional[Dict[str, Any]] = None
+    gnid_data: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -86,7 +86,7 @@ class TenantInfoSchema(BaseModel):
     name: Optional[str] = None
     acronym: Optional[str] = None
     slug: Optional[str] = None
-    custom_fields_json: Optional[str] = None
+    custom_fields: Optional[Dict[str, Any]] = None
 
 class DeviceSchema(BaseModel):
     id: Optional[str] = None
@@ -108,8 +108,8 @@ class DeviceSchema(BaseModel):
     primary_ip: Optional[str] = None
     status: Optional[str] = None
     config: Optional[ConfigDataSchema] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    netbox_created_at: Optional[str] = None
+    netbox_updated_at: Optional[str] = None
     tenant_info: Optional[TenantInfoSchema] = None
     audit: Optional[AuditDataSchema] = None
     associated_ips: List[AssociatedIpSchema] = []
@@ -135,6 +135,9 @@ class TenantTopologySchema(BaseModel):
     name: Optional[str] = None
     netbox_id: Optional[int] = None
     device_count: Optional[int] = None
+    last_config_sync_at: Optional[str] = None
+    last_netbox_sync_at: Optional[str] = None
+    last_cmd_sync_at: Optional[str] = None
     devices: List[DeviceSchema] = []
     
     tenant_url: Optional[str] = None
@@ -171,6 +174,9 @@ class LightweightTenantTopologySchema(BaseModel):
     name: Optional[str] = None
     netbox_id: Optional[int] = None
     device_count: Optional[int] = None
+    last_config_sync_at: Optional[str] = None
+    last_netbox_sync_at: Optional[str] = None
+    last_cmd_sync_at: Optional[str] = None
     devices: List[LightweightDeviceSchema] = []
     
     tenant_url: Optional[str] = None

@@ -1,6 +1,6 @@
 module_info:
   name: "Halo Admin Module"
-  version: "0.2.6"
+  version: "0.2.7"
   acronym: "HAM"
   category: "Admin"
   description: "Centralized platform for managing the HALO ecosystem."

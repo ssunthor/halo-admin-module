@@ -10,7 +10,8 @@ from rest_api.schemas import (
     TenantTopologyResponseSchema, 
     SingleTenantTopologyResponseSchema,
     LightweightTenantTopologyResponseSchema,
-    SingleLightweightTenantTopologyResponseSchema
+    SingleLightweightTenantTopologyResponseSchema,
+    DeviceResponseSchema
 )
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ def external_api_root(request: Request):
     return {
         "tenants": f"{base_url}/tenants",
         "config": f"{base_url}/config",
+        "device": f"{base_url}/device/{{device_name}}",
         "docs": f"{base_url}/docs",
     }
 
@@ -119,7 +121,7 @@ def external_tenant_details(
             redis = request.app.state.redis_handler
             
             for device in paginated_devices:
-                # device["device_url"] = f"{base_url}/devices/{device['name']}" # if needed
+                device["device_url"] = f"{base_url}/device/{device['name']}"
                 if "config" in device and "history" in device["config"]:
                     for h in device["config"]["history"]:
                         if h.get("path") and h["path"] != "N/A" and h.get("hash"):
@@ -147,6 +149,38 @@ def external_tenant_details(
         raise
     except Exception as e:
         logger.error(f"Failed to fetch external tenant details: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/external/device/{device_name}", responses={200: {"model": DeviceResponseSchema}})
+def external_device_details(request: Request, device_name: str):
+    """Get the full metadata of a specific device."""
+    hru = request.app.state.hru_connector
+    try:
+        data = hru.get_netbox_device(device_name)
+        if not data:
+            raise HTTPException(status_code=404, detail="Device not found")
+        
+        host = request.headers.get("x-forwarded-host", request.url.hostname)
+        proto = request.headers.get("x-forwarded-proto", "https")
+        base_url = f"{proto}://{host}/api/ham"
+        
+        data["device_url"] = f"{base_url}/device/{data['name']}"
+        
+        if "config" in data and "history" in data["config"]:
+            redis = request.app.state.redis_handler
+            for h in data["config"]["history"]:
+                if h.get("path") and h["path"] != "N/A" and h.get("hash"):
+                    redis.client.set(f"ham:download:{h['hash']}", h["path"], ex=604800)
+                    h["download_url"] = f"{base_url}/download/{h['hash']}"
+                    
+        return DeviceResponseSchema(
+            success=True,
+            data=data
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch external device details: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/external/config")
