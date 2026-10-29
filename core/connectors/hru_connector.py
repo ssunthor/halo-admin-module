@@ -159,4 +159,21 @@ class HRUConnector:
             logger.error(f"gRPC call failed for NetboxDevice: {e}")
             return {}
 
-
+    def update_device_aliases(self, device_name: str, aliases: list) -> dict:
+        stub = self._get_stub()
+        if not stub:
+            return {"success": False, "message": "Failed to connect to HRU server."}
+        
+        try:
+            req = self.hru_pb2.UpdateDeviceAliasesRequest(
+                device_name=device_name,
+                aliases=aliases
+            )
+            response = stub.UpdateDeviceAliases(req)
+            return {
+                "success": response.success,
+                "message": response.message
+            }
+        except grpc.RpcError as e:
+            logger.error(f"gRPC call failed for UpdateDeviceAliases: {e}")
+            return {"success": False, "message": str(e)}

@@ -94,7 +94,7 @@ class DeviceSchema(BaseModel):
     tenant_acronym: Optional[str] = None
     netbox_id: Optional[int] = None
     netbox_type: Optional[str] = None
-    alias: Optional[str] = None
+    aliases: List[str] = []
     cmd: Optional[CmdInfoSchema] = None
     platform: Optional[str] = None
     os_build: Optional[str] = None
@@ -155,6 +155,9 @@ class SingleTenantTopologyResponseSchema(BaseModel):
 class DeviceResponseSchema(BaseModel):
     success: bool
     data: DeviceSchema
+
+class UpdateDeviceAliasesSchema(BaseModel):
+    aliases: List[str]
 
 class LightweightDeviceSchema(BaseModel):
     id: Optional[str] = None

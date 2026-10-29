@@ -134,13 +134,23 @@ if os.path.exists(CUSTOM_STATIC_DIR):
 if os.path.exists(STATIC_DIR):
     app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
     
+    NO_CACHE_HEADERS = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
     @app.get("/{full_path:path}", response_class=FileResponse, include_in_schema=False)
     async def serve_react_app(full_path: str):
         if full_path.startswith("api/"): raise HTTPException(status_code=404, detail="API route not found")
         path = os.path.join(STATIC_DIR, full_path)
-        if os.path.exists(path) and os.path.isfile(path): return FileResponse(path)
+        if os.path.exists(path) and os.path.isfile(path):
+            if path.endswith("index.html"):
+                return FileResponse(path, headers=NO_CACHE_HEADERS)
+            return FileResponse(path)
         index_path = os.path.join(STATIC_DIR, "index.html")
-        if os.path.exists(index_path): return FileResponse(index_path)
+        if os.path.exists(index_path):
+            return FileResponse(index_path, headers=NO_CACHE_HEADERS)
         return JSONResponse(status_code=404, content={"detail": "Frontend build not found."})
 else:
     @app.get("/")

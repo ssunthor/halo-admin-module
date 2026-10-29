@@ -60,7 +60,7 @@ function NavigationTabs() {
 }
 
 function MainLayout() {
-    const { themeMode, toggleTheme, setThemeMode, availableThemes } = useContext(ThemeContext);
+    const { themeMode, toggleTheme, setThemeMode, availableThemes, isHalloween } = useContext(ThemeContext);
     const { data: user, isLoading: loadingUser } = useQuery({
         queryKey: ['user'],
         queryFn: fetchUser,
@@ -133,6 +133,7 @@ function MainLayout() {
     const handleMenuClose = () => setAnchorEl(null);
 
     const themeColors = {
+        halloween: '#ff2222',
         dark: '#1e293b',
         light: '#f8fafc',
         pink: '#d81b60',
@@ -140,35 +141,12 @@ function MainLayout() {
         red: '#ef4444',
         blue: '#2b8aff'
     };
+    const SEASONAL_LABELS = { halloween: '🎃 Halloween' };
 
-    const handleThemeSelect = async (theme) => {
+    const handleThemeSelect = (theme) => {
         setThemeMode(theme);
         handleMenuClose();
-        try {
-            await fetch('/api/auth/me/theme', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme })
-            });
-        } catch (e) {
-            console.error('Failed to save theme', e);
-        }
     };
-
-    useEffect(() => {
-        const fetchGatewayTheme = async () => {
-            try {
-                const response = await fetch('/api/auth/me');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.theme) {
-                        setThemeMode(data.theme);
-                    }
-                }
-            } catch (err) {}
-        };
-        fetchGatewayTheme();
-    }, [setThemeMode]);
 
     const [isChangelogOpen, setIsChangelogOpen] = useState(false);
     const [newVersions, setNewVersions] = useState([]);
@@ -279,17 +257,35 @@ function MainLayout() {
                             open={Boolean(anchorEl)}
                             onClose={handleMenuClose}
                         >
-                            {availableThemes?.map(themeOption => (
-                                <MenuItem 
-                                    key={themeOption} 
-                                    onClick={() => handleThemeSelect(themeOption)}
-                                    selected={themeMode === themeOption}
-                                    sx={{ textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 1.5 }}
-                                >
-                                    <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: themeColors[themeOption] || 'grey', border: '1px solid', borderColor: 'divider' }} />
-                                    {themeOption}
-                                </MenuItem>
-                            ))}
+                            {availableThemes?.map(themeOption => {
+                                const isSeasonal = Boolean(SEASONAL_LABELS[themeOption]);
+                                return (
+                                    <MenuItem 
+                                        key={themeOption} 
+                                        onClick={() => handleThemeSelect(themeOption)}
+                                        selected={themeMode === themeOption}
+                                        sx={{
+                                            textTransform: isSeasonal ? 'none' : 'capitalize',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1.5,
+                                            fontWeight: isSeasonal ? 600 : 400,
+                                            color: isSeasonal ? '#ff4444' : 'inherit'
+                                        }}
+                                    >
+                                        <Box sx={{
+                                            width: 16,
+                                            height: 16,
+                                            borderRadius: '50%',
+                                            backgroundColor: themeColors[themeOption] || 'grey',
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            boxShadow: isSeasonal ? '0 0 8px rgba(255, 34, 34, 0.6)' : 'none'
+                                        }} />
+                                        {SEASONAL_LABELS[themeOption] || themeOption}
+                                    </MenuItem>
+                                );
+                            })}
                         </Menu>
 
                         {!loadingUser && (

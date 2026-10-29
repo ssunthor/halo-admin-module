@@ -15,19 +15,34 @@
 # - "🔒 Security & Auth"
 # - "🧹 Refactoring & Chores"
 # ---------------------------------------------------------------------------
+- version: 0.2.8
+  date: "2026-10-29"
+  author: "Martin Kecka"
+  changes:
+    - category: "✨ New Features & Enhancements"
+      items:
+        - "Integrated GIA Gateway theme synchronization architecture, supporting dynamic theme events, seasonal themes, and automated preference persistence."
+    - category: "🎨 UI / UX Improvements"
+      items:
+        - "Updated theme selector menu and provider to seamlessly sync user preferences and dynamic event overlays with GIA Gateway."
+
 - version: 0.2.7
   date: "2026-10-05"
   author: "Martin Kecka"
   changes:
     - category: "✨ New Features & Enhancements"
       items:
+        - "Introduced support for multiple Device Aliases to track renamed hardware, replacing the legacy unused single-string alias."
+        - "Built an interactive inline `AliasesEditor` within the UI's Device Details Dialog allowing seamless mutation."
         - "Exposed the single device API endpoint at `/external/device/{device_name}` for fetching complete device metadata in external integrations."
         - "Added the new `device` endpoint to the External API Root (`/api/ham`) response payload."
     - category: "🚀 Architecture & Infrastructure"
       items:
-        - "Renamed `created_at` and `updated_at` schema keys to `netbox_created_at` and `netbox_updated_at` across HRU protobufs, HAM schemas, and API responses to resolve timestamp ambiguity."
+        - "Added `PATCH /device/{device_name}/aliases` REST endpoint mapping strictly typed Pydantic payloads (`UpdateDeviceAliasesSchema`) to the backend HRU gRPC service."
+        - "Renamed `created_at` and `updated_at` schema keys to `netbox_created_at` and `netbox_updated_at` across HAM schemas and API responses to resolve timestamp ambiguity."
     - category: "🎨 UI / UX Improvements"
       items:
+        - "Integrated GIA Gateway seasonal themes architecture, supporting dynamic seasonal themes and overlays (e.g. Halloween)."
         - "Refactored the Device Details Dialog to clearly distinguish between 'Netbox Record Created/Updated' and 'Latest Backup Sync' timestamps, eliminating user confusion."
 
 - version: 0.2.6

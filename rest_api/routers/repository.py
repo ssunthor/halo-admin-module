@@ -4,7 +4,7 @@ import json
 import logging
 
 from rest_api.dependencies import get_current_user
-from rest_api.schemas import TenantTopologyResponseSchema, LightweightTenantTopologyResponseSchema, DeviceResponseSchema
+from rest_api.schemas import TenantTopologyResponseSchema, LightweightTenantTopologyResponseSchema, DeviceResponseSchema, UpdateDeviceAliasesSchema
 from typing import Union
 
 logger = logging.getLogger(__name__)
@@ -70,4 +70,18 @@ def get_device_details(request: Request, device_name: str):
         return {"success": True, "data": data}
     except Exception as e:
         logger.error(f"Failed to fetch device details for {device_name} from HRU: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/device/{device_name}/aliases")
+def patch_device_aliases(request: Request, device_name: str, payload: UpdateDeviceAliasesSchema):
+    hru = request.app.state.hru_connector
+    try:
+        result = hru.update_device_aliases(device_name, payload.aliases)
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Failed to update aliases"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update aliases for {device_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

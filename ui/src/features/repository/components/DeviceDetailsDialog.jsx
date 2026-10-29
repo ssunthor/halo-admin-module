@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, Grid, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Card, CardContent, Chip, Tooltip } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { Box, Typography, Grid, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Card, CardContent, Chip, Tooltip, TextField } from '@mui/material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const fetchDeviceDetails = async (deviceName) => {
     const res = await fetch(`/api/repository/device/${deviceName}`);
@@ -73,6 +73,61 @@ const AuditTooltip = ({ audit, children }) => {
     );
 };
 
+const AliasesEditor = ({ deviceName, aliases }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [inputValue, setInputValue] = React.useState(aliases ? aliases.join(', ') : '');
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: async (newAliases) => {
+            const res = await fetch(`/api/repository/device/${deviceName}/aliases`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aliases: newAliases })
+            });
+            if (!res.ok) throw new Error('Failed to update aliases');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['deviceDetails', deviceName]);
+            setIsEditing(false);
+        }
+    });
+
+    const handleSave = () => {
+        const newAliases = inputValue.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        mutation.mutate(newAliases);
+    };
+
+    if (isEditing) {
+        return (
+            <Box display="flex" alignItems="center" gap={1}>
+                <TextField 
+                    value={inputValue} 
+                    onChange={e => setInputValue(e.target.value)} 
+                    size="small"
+                    placeholder="alias1, alias2"
+                    variant="standard"
+                    disabled={mutation.isPending}
+                    InputProps={{ style: { fontSize: '0.8rem' } }}
+                    sx={{ flexGrow: 1 }}
+                />
+                <Button size="small" onClick={handleSave} disabled={mutation.isPending} sx={{ minWidth: 'auto', p: 0.5 }}>Save</Button>
+                <Button size="small" color="inherit" onClick={() => { setIsEditing(false); setInputValue(aliases ? aliases.join(', ') : ''); }} disabled={mutation.isPending} sx={{ minWidth: 'auto', p: 0.5 }}>Cancel</Button>
+            </Box>
+        );
+    }
+
+    return (
+        <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" sx={{ fontWeight: 500, wordBreak: 'break-word', fontSize: '0.8rem' }}>
+                {aliases && aliases.length > 0 ? aliases.join(', ') : <span style={{ color: 'gray', fontStyle: 'italic' }}>None</span>}
+            </Typography>
+            <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, fontSize: '0.7rem' }} onClick={() => setIsEditing(true)}>Edit</Button>
+        </Box>
+    );
+};
+
 export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
     const { data: device, isLoading, isError } = useQuery({
         queryKey: ['deviceDetails', deviceName],
@@ -131,6 +186,10 @@ export default function DeviceDetailsDialog({ deviceName, open, onClose }) {
                             <DetailRow label="Tenant Acronym" value={device.tenant_info?.acronym} />
                             <DetailRow label="Tenant Name" value={device.tenant_info?.name} />
                             <DetailRow label="Primary IP" value={device.primary_ip} />
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="caption" color="textSecondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5, mb: -0.5, display: 'block' }}>Aliases</Typography>
+                                <AliasesEditor deviceName={device.name} aliases={device.aliases} />
+                            </Grid>
                         </SectionCard>
 
                         <SectionCard title="Location & Network">
